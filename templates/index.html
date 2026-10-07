@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KinoMap</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    
+    <!-- Leaflet para o Mapa -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+<body class="dark-mode">
+    <div class="app-container">
+        <!-- Menu Lateral -->
+        <aside class="sidebar">
+            <div class="logo" style="display: flex; justify-content: center; margin-bottom: 2rem; padding: 0 1rem;">
+                <img src="{{ url_for('static', filename='images/logo.png') }}" alt="KinoMap Logo" style="max-width: 140px; height: auto;">
+            </div>
+            
+            <nav class="nav-menu">
+                <button class="nav-btn active" data-target="tela-inicio">
+                    <i class="ph ph-house"></i> Início
+                </button>
+                <button class="nav-btn" data-target="tela-sorteio">
+                    <i class="ph ph-dice-five"></i> Sorteio
+                </button>
+                <button class="nav-btn" data-target="tela-historico">
+                    <i class="ph ph-clock-counter-clockwise"></i> Histórico
+                </button>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <button id="theme-toggle" class="theme-btn">
+                    <i class="ph ph-sun"></i> <span>Modo Claro</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Conteúdo Principal -->
+        <main class="main-content">
+            <!-- Tela Início -->
+            <section id="tela-inicio" class="view-section active">
+                <div class="hero-posters" style="background-image: url('{{ url_for('static', filename='images/hero_bg.jpg') }}'); background-size: cover; background-position: center; width: 100%; height: 100%; position: absolute; top: 0; left: 0; transform: none; opacity: 0.6;"></div>
+                <div class="hero-overlay" style="background: radial-gradient(circle at center, var(--bg-main) 10%, rgba(18,18,20,0.7) 60%, rgba(18,18,20,0.9) 100%);"></div>
+                <div class="hero">
+                    <h2>Bem-vindo ao KinoMap!</h2>
+                    <p class="hero-text">
+                        Explore o cinema mundial, um país de cada vez.<br><br>
+                        O KinoMap utiliza a base de dados oficial do IMDb para te ajudar
+                        a descobrir obras-primas fora do circuito comercial padrão.
+                        Escolha um país e deixe o algoritmo encontrar o filme perfeito
+                        para a sua próxima sessão.
+                    </p>
+                    <button class="btn-primary start-btn" onclick="document.querySelector('[data-target=\'tela-sorteio\']').click()">
+                        Começar Aventura <i class="ph ph-arrow-right"></i>
+                    </button>
+                </div>
+            </section>
+
+            <!-- Tela Sorteio -->
+            <section id="tela-sorteio" class="view-section">
+                <h2><i class="ph ph-dice-five"></i> Realizar Sorteio</h2>
+                
+                <div class="sorteio-options">
+                    <label class="radio-card">
+                        <input type="radio" name="opcao-sorteio" value="1" checked>
+                        <div class="card-content">
+                            <i class="ph ph-trophy"></i>
+                            <div class="text">
+                                <strong>Melhor Filme</strong>
+                                <span>País aleatório</span>
+                            </div>
+                        </div>
+                    </label>
+                    <label class="radio-card">
+                        <input type="radio" name="opcao-sorteio" value="2">
+                        <div class="card-content">
+                            <i class="ph ph-shuffle"></i>
+                            <div class="text">
+                                <strong>Aleatório</strong>
+                                <span>País aleatório</span>
+                            </div>
+                        </div>
+                    </label>
+                    <label class="radio-card">
+                        <input type="radio" name="opcao-sorteio" value="3">
+                        <div class="card-content">
+                            <i class="ph ph-globe-hemisphere-west"></i>
+                            <div class="text">
+                                <strong>Global</strong>
+                                <span>Qualquer filme</span>
+                            </div>
+                        </div>
+                    </label>
+                </div>
+
+                <div class="filtros-container" style="background-color: var(--bg-sidebar); padding: 1rem 1.5rem; border-radius: 12px; margin-bottom: 1.5rem; border: 1px solid var(--border-color);">
+                    <h3 style="margin-bottom: 0.8rem; font-size: 1rem;"><i class="ph ph-funnel"></i> Filtros (Opcional)</h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem;">
+                        <div>
+                            <label style="display: block; font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.2rem;">Gênero</label>
+                            <input type="text" id="filtro-genero" placeholder="Ex: Comédia" style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary);">
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.2rem;">Ano (Mín - Máx)</label>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <input type="number" id="filtro-ano-min" placeholder="1990" style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary);">
+                                <input type="number" id="filtro-ano-max" placeholder="2023" style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary);">
+                            </div>
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.2rem;">Duração Min</label>
+                            <input type="number" id="filtro-duracao" placeholder="Ex: 90" style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary);">
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.2rem;">Nota Mínima</label>
+                            <input type="number" step="0.1" id="filtro-nota" placeholder="Ex: 7.5" style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary);">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Botão Menor e Centralizado -->
+                <button id="btn-sortear" class="btn-primary action-btn-small">
+                    <i class="ph ph-magic-wand"></i> Sortear!
+                </button>
+
+                <div id="loading-spinner" class="hidden">
+                    <i class="ph ph-spinner-gap spinner-icon"></i>
+                    <p>Encontrando a obra-prima...</p>
+                </div>
+
+                <div id="resultado-container" class="hidden" style="margin-top: 2rem;">
+                    
+                    <div class="result-layout">
+                        
+                        <!-- Pôster do Filme Estilo Netflix -->
+                        <div class="movie-card" id="res-movie-card">
+                            <img id="res-poster" src="" alt="Capa do Filme">
+                            
+                            <div class="movie-info">
+                                <span class="badge" id="res-tipo" style="align-self: flex-start; margin-bottom: 0.5rem; font-size: 0.7rem;"></span>
+                                <h3 id="res-titulo"></h3>
+                                <div class="details">
+                                    <span id="res-ano"></span> • <span id="res-duracao"></span>
+                                </div>
+                                
+                                <div class="stats">
+                                    <span><i class="ph ph-star-fill" style="color: #f1c40f;"></i> <span id="res-nota"></span></span>
+                                    <span><i class="ph ph-users"></i> <span id="res-votos"></span></span>
+                                </div>
+                                <div style="font-size: 0.8rem; margin-top: 0.2rem; color: #eee;">
+                                    <i class="ph ph-map-pin"></i> <span id="res-pais"></span>
+                                </div>
+                                
+                                <a id="res-link" href="#" target="_blank" class="btn-imdb">Abrir no IMDb</a>
+                            </div>
+                        </div>
+
+                        <!-- Mapa Mundi do Leaflet -->
+                        <div class="map-wrapper">
+                            <div id="map-container"></div>
+                        </div>
+
+                    </div>
+                </div>
+            </section>
+
+            <!-- Tela Histórico -->
+            <section id="tela-historico" class="view-section">
+                <h2><i class="ph ph-clock-counter-clockwise"></i> Histórico de Sorteios</h2>
+                
+                <div class="tabs">
+                    <button class="tab-btn active" data-tab="todos">Todos</button>
+                    <button class="tab-btn" data-tab="melhores">Melhores Filmes</button>
+                    <button class="tab-btn" data-tab="aleatorios">Aleatórios (País)</button>
+                    <button class="tab-btn" data-tab="globais">Globais</button>
+                </div>
+                
+                <div class="tab-content">
+                    <div id="historico-list" class="historico-grid">
+                        <!-- Cards serão injetados via JS -->
+                    </div>
+                    <div id="historico-empty" class="hidden">
+                        <i class="ph ph-empty"></i>
+                        <p>Nenhum sorteio realizado ainda.</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>

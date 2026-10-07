@@ -1,0 +1,17 @@
+========================================
+FILMES GLOBAL
+========================================
+MODO DO SORTEIO: FILME ALEATÓRIO: ESTADOS UNIDOS
+PAÍS: Estados Unidos
+
+FILME: Rachel, Rachel
+ANO: 1968
+DURAÇÃO: 101 min
+GÊNEROS: Drama,Romance
+
+NOTA IMDb: 7.1
+AVALIAÇÕES: 4,511
+ÍNDICE: 0.665442
+
+IMDb ID: tt0063483
+POSTER URL: https://image.tmdb.org/t/p/w500/67flKS1FKxIiYUjXPqRc39hb9LX.jpg
