@@ -245,36 +245,12 @@ def realizar_sorteio(opcao="1", filtros=None):
         "ano": int(escolhido["startYear"]) if escolhido["startYear"] else "Desconhecido",
         "nota": float(escolhido["averageRating"]),
         "votos": int(escolhido["numVotes"]),
-        "indice": round(float(escolhido["indice"]) * 10, 2),
+        "indice": round(float(escolhido["indice"]), 2),
         "imdb_id": escolhido["tconst"],
         "duracao": int(escolhido["runtimeMinutes"]) if escolhido["runtimeMinutes"] else "Desconhecido",
         "generos": escolhido["genres"],
         "poster_url": poster_url,
         "coordenadas": coords
     }
-
-    # Salva o arquivo TXT do histórico
-    arquivo_txt = PASTA_SORTEIOS / f"{pais}_{resultado['imdb_id']}.txt"
-    conteudo = f"""
-========================================
-KINOMAP
-========================================
-MODO DO SORTEIO: {resultado['tipo']}
-PAÍS: {resultado['pais']}
-
-FILME: {resultado['titulo']}
-ANO: {resultado['ano']}
-DURAÇÃO: {resultado['duracao']} min
-GÊNEROS: {resultado['generos']}
-
-NOTA IMDb: {resultado['nota']}
-AVALIAÇÕES: {resultado['votos']:,}
-ÍNDICE: {resultado['indice']:.6f}
-
-IMDb ID: {resultado['imdb_id']}
-POSTER URL: {resultado['poster_url']}
-"""
-    with open(arquivo_txt, "w", encoding="utf-8") as arquivo:
-        arquivo.write(conteudo.strip())
 
     return resultado

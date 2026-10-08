@@ -180,6 +180,20 @@ document.addEventListener('DOMContentLoaded', () => {
             // Atualiza Mapa
             updateMap(dados.coordenadas);
 
+            // Salvar no histórico local
+            const histItem = {
+                id: Date.now().toString(),
+                modo: dados.tipo,
+                pais: dados.pais,
+                titulo: dados.titulo,
+                ano: dados.ano,
+                nota: dados.nota,
+                indice: dados.indice,
+                imdb_id: dados.imdb_id,
+                poster_url: dados.poster_url
+            };
+            salvarNoHistoricoLocal(histItem);
+
             loadingSpinner.classList.add('hidden');
             resultadoContainer.classList.remove('hidden');
 
@@ -258,6 +272,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 updateMapSerie(dados.coordenadas);
+
+                // Salvar no histórico local
+                const histItem = {
+                    id: Date.now().toString(),
+                    modo: dados.tipo,
+                    pais: dados.pais,
+                    titulo: dados.titulo,
+                    ano: dados.ano,
+                    nota: dados.nota,
+                    indice: dados.indice,
+                    imdb_id: dados.imdb_id || dados.tmdb_id,
+                    poster_url: dados.poster_url
+                };
+                salvarNoHistoricoLocal(histItem);
 
                 loadingSpinnerSerie.classList.add('hidden');
                 resultadoContainerSerie.classList.remove('hidden');
@@ -358,14 +386,26 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    async function carregarHistorico() {
+    function salvarNoHistoricoLocal(item) {
+        let hist = JSON.parse(localStorage.getItem('kinomap_historico') || '[]');
+        // Limita o histórico aos últimos 100 sorteios para não encher o localStorage
+        if (hist.length >= 100) {
+            hist.pop();
+        }
+        hist.unshift(item);
+        localStorage.setItem('kinomap_historico', JSON.stringify(hist));
+    }
+
+    function carregarHistorico() {
         try {
-            const res = await fetch('/api/historico');
-            todosSorteios = await res.json();
-            const abaAtiva = document.querySelector('.tab-btn.active').getAttribute('data-tab');
+            todosSorteios = JSON.parse(localStorage.getItem('kinomap_historico') || '[]');
+            const btnAtivo = document.querySelector('.tab-btn.active');
+            const abaAtiva = btnAtivo ? btnAtivo.getAttribute('data-tab') : 'todos';
             renderizarHistorico(abaAtiva);
         } catch (error) {
-            console.error('Erro:', error);
+            console.error('Erro ao carregar histórico:', error);
+            todosSorteios = [];
+            renderizarHistorico('todos');
         }
     }
 
@@ -373,9 +413,9 @@ document.addEventListener('DOMContentLoaded', () => {
         historicoList.innerHTML = '';
         let filtrados = todosSorteios;
 
-        if (filtro === 'melhores') filtrados = todosSorteios.filter(s => s.modo && s.modo.includes('MELHOR FILME'));
-        else if (filtro === 'aleatorios') filtrados = todosSorteios.filter(s => s.modo && s.modo.includes('FILME ALEATÓRIO:'));
-        else if (filtro === 'globais') filtrados = todosSorteios.filter(s => s.modo && s.modo.includes('TOTALMENTE ALEATÓRIO'));
+        if (filtro === 'melhores') filtrados = todosSorteios.filter(s => s.modo && s.modo.includes('MELHOR'));
+        else if (filtro === 'aleatorios') filtrados = todosSorteios.filter(s => s.modo && s.modo.includes('ALEATÓRI'));
+        else if (filtro === 'globais') filtrados = todosSorteios.filter(s => s.modo && (s.modo.includes('TOTALMENTE') || s.modo.includes('GLOBAL')));
 
         if (filtrados.length === 0) {
             historicoEmpty.classList.remove('hidden');
@@ -387,23 +427,28 @@ document.addEventListener('DOMContentLoaded', () => {
         filtrados.forEach(item => {
             if (item.titulo !== 'Registro Antigo') {
                 const imgUrl = item.poster_url || "https://via.placeholder.com/240x360/333/999?text=Sem+Capa";
-                
+                const isImdb = item.imdb_id && String(item.imdb_id).startsWith('tt');
+                const linkUrl = isImdb 
+                    ? `https://www.imdb.com/title/${item.imdb_id}/` 
+                    : (item.imdb_id ? `https://www.themoviedb.org/tv/${item.imdb_id}` : '#');
+                const linkText = isImdb ? 'Abrir no IMDb' : 'Abrir no TMDB';
+
                 const card = document.createElement('div');
                 card.className = 'movie-card';
                 card.innerHTML = `
                     <img src="${imgUrl}" alt="Capa">
                     <div class="movie-info">
-                        <span class="badge" style="align-self: flex-start; margin-bottom: 0.5rem; font-size: 0.6rem;">${item.modo}</span>
+                        <span class="badge" style="align-self: flex-start; margin-bottom: 0.5rem; font-size: 0.6rem;">${item.modo || 'Sorteio'}</span>
                         <h3>${item.titulo}</h3>
-                        <div class="details">${item.ano}</div>
+                        <div class="details">${item.ano || ''}</div>
                         <div class="stats">
-                            <span title="Nota IMDb"><i class="ph ph-star-fill" style="color:#f1c40f;"></i> ${item.nota}</span>
+                            <span title="Nota"><i class="ph ph-star-fill" style="color:#f1c40f;"></i> ${item.nota || '?'}</span>
                             <span title="Nota KM" style="color: var(--primary-color); font-weight: bold; margin-left: auto;">KM: ${(parseFloat(item.indice) || 0).toFixed(2)}</span>
                         </div>
                         <div style="font-size: 0.75rem; margin-top: 0.2rem; color: #eee;">
-                            <i class="ph ph-map-pin"></i> ${item.pais}
+                            <i class="ph ph-map-pin"></i> ${item.pais || 'Desconhecido'}
                         </div>
-                        <a href="https://www.imdb.com/title/${item.imdb_id}/" target="_blank" class="btn-imdb">Abrir no IMDb</a>
+                        <a href="${linkUrl}" target="_blank" class="btn-imdb">${linkText}</a>
                     </div>
                 `;
                 historicoList.appendChild(card);
