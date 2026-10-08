@@ -2,7 +2,6 @@ import sqlite3
 import random
 import unicodedata
 from pathlib import Path
-import pandas as pd
 
 def normalizar_texto(texto):
     if not texto: return ""
