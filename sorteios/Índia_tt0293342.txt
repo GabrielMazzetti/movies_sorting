@@ -1,0 +1,17 @@
+========================================
+KINOMAP
+========================================
+MODO DO SORTEIO: FILME TOTALMENTE ALEATÓRIO
+PAÍS: Índia
+
+FILME: Lajja
+ANO: 2001
+DURAÇÃO: 202 min
+GÊNEROS: Action,Crime,Drama
+
+NOTA IMDb: 6.6
+AVALIAÇÕES: 3,130
+ÍNDICE: 62.310000
+
+IMDb ID: tt0293342
+POSTER URL: https://image.tmdb.org/t/p/w500/xFvCS5h3TyixKaBintDoVjYGyVZ.jpg

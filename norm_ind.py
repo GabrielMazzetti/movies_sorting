@@ -117,7 +117,7 @@ filmes["indice"] = (
     0.7 * (filmes["averageRating"] / 10)
     +
     0.3 * filmes["popularidade"]
-)
+) * 10
 
 
 # ==========================================

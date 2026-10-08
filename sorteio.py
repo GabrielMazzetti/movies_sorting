@@ -59,7 +59,55 @@ def construir_where(filtros):
         clausulas.append("genres LIKE ?")
         params.append(f"%{gen_ingles}%")
 
+    if "pais" in filtros and filtros["pais"]:
+        try:
+            from normalizar_pais import normalizar_pais
+            pais_norm = normalizar_pais(filtros["pais"])
+            if pais_norm:
+                clausulas.append("pais_sorteavel = ?")
+                params.append(pais_norm)
+            else:
+                clausulas.append("pais_sorteavel LIKE ?")
+                params.append(f"%{filtros['pais']}%")
+        except:
+            clausulas.append("pais_sorteavel LIKE ?")
+            params.append(f"%{filtros['pais']}%")
+
+    if "diretor" in filtros and filtros["diretor"]:
+        import os
+        import requests
+        from concurrent.futures import ThreadPoolExecutor
         
+        tmdb_key = os.environ.get("TMDB_API_KEY")
+        if tmdb_key:
+            res = requests.get(f"https://api.themoviedb.org/3/search/person?api_key={tmdb_key}&query={filtros['diretor']}", timeout=5)
+            if res.status_code == 200 and res.json().get("results"):
+                person_id = res.json()["results"][0]["id"]
+                res_cred = requests.get(f"https://api.themoviedb.org/3/person/{person_id}/movie_credits?api_key={tmdb_key}", timeout=5)
+                if res_cred.status_code == 200:
+                    crew = res_cred.json().get("crew", [])
+                    directed_ids = [m["id"] for m in crew if m.get("job") == "Director"]
+                    
+                    def get_imdb(tmdb_id):
+                        try:
+                            r = requests.get(f"https://api.themoviedb.org/3/movie/{tmdb_id}/external_ids?api_key={tmdb_key}", timeout=5)
+                            if r.status_code == 200: return r.json().get("imdb_id")
+                        except: pass
+                        return None
+                        
+                    imdb_ids = []
+                    if directed_ids:
+                        with ThreadPoolExecutor(max_workers=10) as executor:
+                            imdb_ids = [i for i in executor.map(get_imdb, directed_ids) if i]
+                            
+                    if imdb_ids:
+                        placeholders = ",".join(["?"] * len(imdb_ids))
+                        clausulas.append(f"tconst IN ({placeholders})")
+                        params.extend(imdb_ids)
+                    else:
+                        clausulas.append("tconst = 'NO_MATCH'")
+            else:
+                clausulas.append("tconst = 'NO_MATCH'")
     if "ano_min" in filtros and filtros["ano_min"]:
         clausulas.append("startYear >= ?")
         params.append(int(filtros["ano_min"]))
@@ -107,7 +155,18 @@ def realizar_sorteio(opcao="1", filtros=None):
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
 
-        if str(opcao) == "3":
+        if filtros and filtros.get("titulo"):
+            query = "SELECT * FROM filmes_final WHERE primaryTitle LIKE ? COLLATE NOCASE ORDER BY numVotes DESC LIMIT 1"
+            cursor.execute(query, [f"%{filtros['titulo']}%"])
+            escolhido = cursor.fetchone()
+            
+            if not escolhido:
+                return {"error": "Nenhum filme encontrado com esse título e filtros."}
+                
+            pais = escolhido["pais_sorteavel"]
+            tipo_sorteio = "BUSCA POR TÍTULO"
+        
+        elif str(opcao) == "3":
             # 3. Filme totalmente aleatório
             query = f"SELECT * FROM filmes_final WHERE 1=1 {where_sql} ORDER BY RANDOM() LIMIT 1"
             cursor.execute(query, params)
@@ -187,7 +246,7 @@ def realizar_sorteio(opcao="1", filtros=None):
         "ano": int(escolhido["startYear"]) if escolhido["startYear"] else "Desconhecido",
         "nota": float(escolhido["averageRating"]),
         "votos": int(escolhido["numVotes"]),
-        "indice": float(escolhido["indice"]),
+        "indice": round(float(escolhido["indice"]) * 10, 2),
         "imdb_id": escolhido["tconst"],
         "duracao": int(escolhido["runtimeMinutes"]) if escolhido["runtimeMinutes"] else "Desconhecido",
         "generos": escolhido["genres"],

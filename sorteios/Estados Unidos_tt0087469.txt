@@ -1,0 +1,17 @@
+========================================
+KINOMAP
+========================================
+MODO DO SORTEIO: FILME ALEATÓRIO: ESTADOS UNIDOS
+PAÍS: Estados Unidos
+
+FILME: Indiana Jones and the Temple of Doom
+ANO: 1984
+DURAÇÃO: 118 min
+GÊNEROS: Action,Adventure
+
+NOTA IMDb: 7.5
+AVALIAÇÕES: 572,200
+ÍNDICE: 7.903913
+
+IMDb ID: tt0087469
+POSTER URL: https://image.tmdb.org/t/p/w500/gpdVNUaa4LhRMLfJOPj1AZdhAZ3.jpg

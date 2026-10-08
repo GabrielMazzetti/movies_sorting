@@ -25,7 +25,13 @@
                     <i class="ph ph-house"></i> Início
                 </button>
                 <button class="nav-btn" data-target="tela-sorteio">
-                    <i class="ph ph-dice-five"></i> Sorteio
+                    <i class="ph ph-dice-five"></i> Filmes
+                </button>
+                <button class="nav-btn" data-target="tela-series">
+                    <i class="ph ph-television"></i> Séries
+                </button>
+                <button class="nav-btn" data-target="tela-livros">
+                    <i class="ph ph-book-open"></i> Livros
                 </button>
                 <button class="nav-btn" data-target="tela-historico">
                     <i class="ph ph-clock-counter-clockwise"></i> Histórico
@@ -105,6 +111,14 @@
                             <input type="text" id="filtro-genero" placeholder="Ex: Comédia" style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary);">
                         </div>
                         <div>
+                            <label style="display: block; font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.2rem;">País</label>
+                            <input type="text" id="filtro-pais" list="paises-list" placeholder="Ex: Brasil" style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary);">
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.2rem;">Diretor</label>
+                            <input type="text" id="filtro-diretor" placeholder="Ex: Spielberg" style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary);">
+                        </div>
+                        <div>
                             <label style="display: block; font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.2rem;">Ano (Mín - Máx)</label>
                             <div style="display: flex; gap: 0.5rem;">
                                 <input type="number" id="filtro-ano-min" placeholder="1990" style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary);">
@@ -127,6 +141,16 @@
                     <i class="ph ph-magic-wand"></i> Sortear!
                 </button>
 
+                <div class="busca-container" style="margin-top: 1.5rem; margin-bottom: 1.5rem; background-color: var(--bg-sidebar); padding: 1rem 1.5rem; border-radius: 12px; border: 1px solid var(--border-color);">
+                    <h3 style="margin-bottom: 0.8rem; font-size: 1rem;"><i class="ph ph-magnifying-glass"></i> Busca Direta</h3>
+                    <div style="display: flex; gap: 1rem; align-items: center;">
+                        <input type="text" id="filtro-titulo" placeholder="Digite o título do filme..." style="flex: 1; padding: 0.6rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary);">
+                        <button id="btn-buscar-titulo" class="btn-primary action-btn-small" style="width: auto; padding: 0.6rem 1.5rem; margin-top: 0;">
+                            Buscar
+                        </button>
+                    </div>
+                </div>
+
                 <div id="loading-spinner" class="hidden">
                     <i class="ph ph-spinner-gap spinner-icon"></i>
                     <p>Encontrando a obra-prima...</p>
@@ -148,8 +172,9 @@
                                 </div>
                                 
                                 <div class="stats">
-                                    <span><i class="ph ph-star-fill" style="color: #f1c40f;"></i> <span id="res-nota"></span></span>
-                                    <span><i class="ph ph-users"></i> <span id="res-votos"></span></span>
+                                    <span title="Nota IMDb"><i class="ph ph-star-fill" style="color: #f1c40f;"></i> <span id="res-nota"></span></span>
+                                    <span title="Avaliações"><i class="ph ph-users"></i> <span id="res-votos"></span></span>
+                                    <span title="Nota KM" style="color: var(--primary-color); font-weight: bold; margin-left: auto;">KM: <span id="res-indice"></span></span>
                                 </div>
                                 <div style="font-size: 0.8rem; margin-top: 0.2rem; color: #eee;">
                                     <i class="ph ph-map-pin"></i> <span id="res-pais"></span>
@@ -164,6 +189,189 @@
                             <div id="map-container"></div>
                         </div>
 
+                    </div>
+                </div>
+            </section>
+
+            <!-- Tela Séries -->
+            <section id="tela-series" class="view-section">
+                <h2><i class="ph ph-television"></i> Sorteio de Séries</h2>
+                
+                <div class="sorteio-options">
+                    <label class="radio-card">
+                        <input type="radio" name="opcao-serie" value="1" checked>
+                        <div class="card-content">
+                            <i class="ph ph-trophy"></i>
+                            <div class="text">
+                                <strong>Melhor Série</strong>
+                                <span>País aleatório</span>
+                            </div>
+                        </div>
+                    </label>
+                    <label class="radio-card">
+                        <input type="radio" name="opcao-serie" value="2">
+                        <div class="card-content">
+                            <i class="ph ph-shuffle"></i>
+                            <div class="text">
+                                <strong>Aleatório</strong>
+                                <span>País aleatório</span>
+                            </div>
+                        </div>
+                    </label>
+                    <label class="radio-card">
+                        <input type="radio" name="opcao-serie" value="3">
+                        <div class="card-content">
+                            <i class="ph ph-globe-hemisphere-west"></i>
+                            <div class="text">
+                                <strong>Global</strong>
+                                <span>Qualquer série</span>
+                            </div>
+                        </div>
+                    </label>
+                </div>
+
+                <div class="filtros-container" style="background-color: var(--bg-sidebar); padding: 1rem 1.5rem; border-radius: 12px; margin-bottom: 1.5rem; border: 1px solid var(--border-color);">
+                    <h3 style="margin-bottom: 0.8rem; font-size: 1rem;"><i class="ph ph-funnel"></i> Filtros (Opcional)</h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem;">
+                        <div>
+                            <label style="display: block; font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.2rem;">Gênero</label>
+                            <input type="text" id="filtro-serie-genero" placeholder="Ex: Comédia, Drama" style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary);">
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.2rem;">País</label>
+                            <input type="text" id="filtro-serie-pais" list="paises-list" placeholder="Ex: Brasil, US" style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary);">
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.2rem;">Diretor / Criador</label>
+                            <input type="text" id="filtro-serie-diretor" placeholder="Ex: Vince Gilligan" style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary);">
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.2rem;">Ano Lançamento (Mín - Máx)</label>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <input type="number" id="filtro-serie-ano-min" placeholder="1990" style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary);">
+                                <input type="number" id="filtro-serie-ano-max" placeholder="2023" style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary);">
+                            </div>
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.2rem;">Nota Mínima</label>
+                            <input type="number" step="0.1" id="filtro-serie-nota" placeholder="Ex: 7.5" style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary);">
+                        </div>
+                    </div>
+                </div>
+
+                <button id="btn-sortear-serie" class="btn-primary action-btn-small">
+                    <i class="ph ph-magic-wand"></i> Sortear Série!
+                </button>
+
+                <div class="busca-container" style="margin-top: 1.5rem; margin-bottom: 1.5rem; background-color: var(--bg-sidebar); padding: 1rem 1.5rem; border-radius: 12px; border: 1px solid var(--border-color);">
+                    <h3 style="margin-bottom: 0.8rem; font-size: 1rem;"><i class="ph ph-magnifying-glass"></i> Busca Direta</h3>
+                    <div style="display: flex; gap: 1rem; align-items: center;">
+                        <input type="text" id="filtro-serie-titulo" placeholder="Digite o título da série..." style="flex: 1; padding: 0.6rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary);">
+                        <button id="btn-buscar-serie-titulo" class="btn-primary action-btn-small" style="width: auto; padding: 0.6rem 1.5rem; margin-top: 0;">
+                            Buscar
+                        </button>
+                    </div>
+                </div>
+
+                <div id="loading-spinner-serie" class="hidden">
+                    <i class="ph ph-spinner-gap spinner-icon"></i>
+                    <p>Encontrando a série perfeita...</p>
+                </div>
+
+                <div id="resultado-container-serie" class="hidden" style="margin-top: 2rem;">
+                    
+                    <div class="result-layout">
+                        
+                        <div class="movie-card" id="res-serie-card">
+                            <img id="res-serie-poster" src="" alt="Capa da Série">
+                            
+                            <div class="movie-info">
+                                <span class="badge" id="res-serie-tipo" style="align-self: flex-start; margin-bottom: 0.5rem; font-size: 0.7rem;"></span>
+                                <h3 id="res-serie-titulo"></h3>
+                                <div class="details">
+                                    <span id="res-serie-ano"></span> • <span id="res-serie-duracao"></span>
+                                </div>
+                                
+                                <div class="stats">
+                                    <span title="Nota"><i class="ph ph-star-fill" style="color: #f1c40f;"></i> <span id="res-serie-nota"></span></span>
+                                    <span title="Avaliações"><i class="ph ph-users"></i> <span id="res-serie-votos"></span></span>
+                                    <span title="Nota KM" style="color: var(--primary-color); font-weight: bold; margin-left: auto;">KM: <span id="res-serie-indice"></span></span>
+                                </div>
+                                <div style="font-size: 0.8rem; margin-top: 0.2rem; color: #eee;">
+                                    <i class="ph ph-map-pin"></i> <span id="res-serie-pais"></span>
+                                </div>
+                                
+                                <a id="res-serie-link" href="#" target="_blank" class="btn-imdb">Abrir no TMDb</a>
+                            </div>
+                        </div>
+
+                        <div class="map-wrapper">
+                            <div id="map-container-serie" style="width: 100%; height: 100%; background-color: var(--map-water);"></div>
+                        </div>
+
+                    </div>
+                </div>
+            </section>
+
+            <!-- Tela Livros -->
+            <section id="tela-livros" class="view-section">
+                <h2><i class="ph ph-book-open"></i> Sorteio de Livros</h2>
+                
+                <div class="filtros-container" style="background-color: var(--bg-sidebar); padding: 1rem 1.5rem; border-radius: 12px; margin-bottom: 1.5rem; border: 1px solid var(--border-color);">
+                    <h3 style="margin-bottom: 0.8rem; font-size: 1rem;"><i class="ph ph-funnel"></i> Filtros (Opcional)</h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem;">
+                        <div>
+                            <label style="display: block; font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.2rem;">Assunto / Gênero</label>
+                            <input type="text" id="filtro-livro-assunto" placeholder="Ex: Fantasy, Science, History" style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary);">
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.2rem;">Autor</label>
+                            <input type="text" id="filtro-livro-autor" placeholder="Ex: Tolkien, Asimov" style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary);">
+                        </div>
+                    </div>
+                </div>
+
+                <button id="btn-sortear-livro" class="btn-primary action-btn-small">
+                    <i class="ph ph-magic-wand"></i> Sortear Livro!
+                </button>
+
+                <div class="busca-container" style="margin-top: 1.5rem; margin-bottom: 1.5rem; background-color: var(--bg-sidebar); padding: 1rem 1.5rem; border-radius: 12px; border: 1px solid var(--border-color);">
+                    <h3 style="margin-bottom: 0.8rem; font-size: 1rem;"><i class="ph ph-magnifying-glass"></i> Busca Direta</h3>
+                    <div style="display: flex; gap: 1rem; align-items: center;">
+                        <input type="text" id="filtro-livro-titulo" placeholder="Digite o título do livro..." style="flex: 1; padding: 0.6rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary);">
+                        <button id="btn-buscar-livro-titulo" class="btn-primary action-btn-small" style="width: auto; padding: 0.6rem 1.5rem; margin-top: 0;">
+                            Buscar
+                        </button>
+                    </div>
+                </div>
+
+                <div id="loading-spinner-livro" class="hidden">
+                    <i class="ph ph-spinner-gap spinner-icon"></i>
+                    <p>Buscando nas bibliotecas...</p>
+                </div>
+
+                <div id="resultado-container-livro" class="hidden" style="margin-top: 2rem; display: flex; justify-content: center;">
+                    <div class="movie-card" id="res-livro-card" style="width: 340px; height: 510px;">
+                        <img id="res-livro-capa" src="" alt="Capa do Livro" style="object-fit: contain; background: #1a1a1a;">
+                        
+                        <div class="movie-info">
+                            <h3 id="res-livro-titulo"></h3>
+                            <div class="details">
+                                <span id="res-livro-autor"></span>
+                            </div>
+                            <div class="details" style="margin-top: 0.5rem; font-size: 0.85rem;">
+                                <span id="res-livro-ano"></span> • <span id="res-livro-paginas"></span> páginas
+                            </div>
+                            
+                            <div class="stats" style="margin-top: 0.5rem;">
+                                <span title="Nota"><i class="ph ph-star-fill" style="color: #f1c40f;"></i> <span id="res-livro-nota"></span></span>
+                            </div>
+                            <div style="font-size: 0.8rem; margin-top: 0.5rem; color: #eee; max-height: 100px; overflow-y: auto;">
+                                <p id="res-livro-sinopse" style="margin: 0; line-height: 1.4;"></p>
+                            </div>
+                            
+                            <a id="res-livro-link" href="#" target="_blank" class="btn-imdb" style="margin-top: 1rem;">Ver no Google Books</a>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -192,6 +400,40 @@
         </main>
     </div>
 
+    <datalist id="paises-list">
+        <option value="US">Estados Unidos</option>
+        <option value="GB">Reino Unido</option>
+        <option value="BR">Brasil</option>
+        <option value="FR">França</option>
+        <option value="KR">Coreia do Sul</option>
+        <option value="JP">Japão</option>
+        <option value="DE">Alemanha</option>
+        <option value="IT">Itália</option>
+        <option value="ES">Espanha</option>
+        <option value="CA">Canadá</option>
+        <option value="IN">Índia</option>
+        <option value="CN">China</option>
+        <option value="RU">Rússia</option>
+        <option value="MX">México</option>
+        <option value="AR">Argentina</option>
+        <option value="AU">Austrália</option>
+        <option value="SE">Suécia</option>
+        <option value="DK">Dinamarca</option>
+        <option value="NO">Noruega</option>
+        <option value="FI">Finlândia</option>
+        <option value="NL">Países Baixos</option>
+        <option value="BE">Bélgica</option>
+        <option value="CH">Suíça</option>
+        <option value="AT">Áustria</option>
+        <option value="PL">Polônia</option>
+        <option value="TR">Turquia</option>
+        <option value="ZA">África do Sul</option>
+        <option value="NZ">Nova Zelândia</option>
+        <option value="IE">Irlanda</option>
+        <option value="PT">Portugal</option>
+        <option value="CO">Colômbia</option>
+        <option value="CL">Chile</option>
+    </datalist>
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
 </body>
 </html>

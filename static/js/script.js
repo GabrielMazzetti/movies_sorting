@@ -15,6 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if(targetId === 'tela-historico') carregarHistorico();
             // Evita bug de render do Leaflet quando a aba era display:none
             if(targetId === 'tela-sorteio' && map) setTimeout(() => map.invalidateSize(), 100);
+            if(targetId === 'tela-series' && mapSerie) setTimeout(() => mapSerie.invalidateSize(), 100);
         });
     });
 
@@ -47,6 +48,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================
     let map = null;
     let mapMarker = null;
+    let mapSerie = null;
+    let mapSerieMarker = null;
 
     function initMap() {
         if (map) return;
@@ -55,12 +58,25 @@ document.addEventListener('DOMContentLoaded', () => {
             dragging: false,
             scrollWheelZoom: false,
             doubleClickZoom: false
-        }).setView([20, 0], 1); // Visão global
+        }).setView([20, 0], 1);
 
-        // Usando OpenStreetMap (totalmente gratuito e sem chave de API)
         L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            attribution: '&copy; OpenStreetMap'
         }).addTo(map);
+    }
+
+    function initMapSerie() {
+        if (mapSerie) return;
+        mapSerie = L.map('map-container-serie', {
+            zoomControl: false,
+            dragging: false,
+            scrollWheelZoom: false,
+            doubleClickZoom: false
+        }).setView([20, 0], 1);
+
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap'
+        }).addTo(mapSerie);
     }
 
     function updateMap(coordenadas) {
@@ -70,7 +86,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (coordenadas && coordenadas.lat && coordenadas.lon) {
             map.setView([coordenadas.lat, coordenadas.lon], 4, { animate: true, duration: 1.5 });
             
-            // Cria um pin bonito e customizado
             const customIcon = L.divIcon({
                 className: 'custom-pin',
                 html: `<div style="background-color: var(--primary-color); width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 10px rgba(0,0,0,0.5);"></div>`,
@@ -84,6 +99,26 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function updateMapSerie(coordenadas) {
+        if (!mapSerie) initMapSerie();
+        if (mapSerieMarker) mapSerie.removeLayer(mapSerieMarker);
+
+        if (coordenadas && coordenadas.lat && coordenadas.lon) {
+            mapSerie.setView([coordenadas.lat, coordenadas.lon], 4, { animate: true, duration: 1.5 });
+            
+            const customIcon = L.divIcon({
+                className: 'custom-pin',
+                html: `<div style="background-color: var(--primary-color); width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 10px rgba(0,0,0,0.5);"></div>`,
+                iconSize: [20, 20],
+                iconAnchor: [10, 10]
+            });
+
+            mapSerieMarker = L.marker([coordenadas.lat, coordenadas.lon], {icon: customIcon}).addTo(mapSerie);
+        } else {
+            mapSerie.setView([20, 0], 1);
+        }
+    }
+
 
     // ==========================================
     // LÓGICA DE SORTEIO
@@ -92,10 +127,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const resultadoContainer = document.getElementById('resultado-container');
     const loadingSpinner = document.getElementById('loading-spinner');
 
+    const btnBuscarTitulo = document.getElementById('btn-buscar-titulo');
+    if (btnBuscarTitulo) {
+        btnBuscarTitulo.addEventListener('click', () => btnSortear.click());
+    }
+
     btnSortear.addEventListener('click', async () => {
         const opcao = document.querySelector('input[name="opcao-sorteio"]:checked').value;
         const filtros = {
+            titulo: document.getElementById('filtro-titulo').value,
             genero: document.getElementById('filtro-genero').value,
+            pais: document.getElementById('filtro-pais').value,
+            diretor: document.getElementById('filtro-diretor').value,
             ano_min: document.getElementById('filtro-ano-min').value,
             ano_max: document.getElementById('filtro-ano-max').value,
             duracao_min: document.getElementById('filtro-duracao').value,
@@ -123,6 +166,7 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('res-duracao').textContent = dados.duracao + " min";
             document.getElementById('res-nota').textContent = dados.nota;
             document.getElementById('res-votos').textContent = parseInt(dados.votos).toLocaleString('pt-BR');
+            document.getElementById('res-indice').textContent = (parseFloat(dados.indice) || 0).toFixed(2);
             document.getElementById('res-pais').textContent = dados.pais;
             document.getElementById('res-link').href = `https://www.imdb.com/title/${dados.imdb_id}/`;
 
@@ -150,6 +194,153 @@ document.addEventListener('DOMContentLoaded', () => {
             btnSortear.disabled = false;
         }
     });
+
+    // ==========================================
+    // LÓGICA DE SORTEIO DE SÉRIES
+    // ==========================================
+    const btnSortearSerie = document.getElementById('btn-sortear-serie');
+    const resultadoContainerSerie = document.getElementById('resultado-container-serie');
+    const loadingSpinnerSerie = document.getElementById('loading-spinner-serie');
+
+    const btnBuscarSerieTitulo = document.getElementById('btn-buscar-serie-titulo');
+    if (btnBuscarSerieTitulo) {
+        btnBuscarSerieTitulo.addEventListener('click', () => btnSortearSerie.click());
+    }
+
+    if (btnSortearSerie) {
+        btnSortearSerie.addEventListener('click', async () => {
+            const opcao = document.querySelector('input[name="opcao-serie"]:checked').value;
+            const filtros = {
+                titulo: document.getElementById('filtro-serie-titulo').value,
+                genero: document.getElementById('filtro-serie-genero').value,
+                pais: document.getElementById('filtro-serie-pais').value,
+                diretor: document.getElementById('filtro-serie-diretor').value,
+                ano_min: document.getElementById('filtro-serie-ano-min').value,
+                ano_max: document.getElementById('filtro-serie-ano-max').value,
+                nota_min: document.getElementById('filtro-serie-nota').value
+            };
+            
+            resultadoContainerSerie.classList.add('hidden');
+            loadingSpinnerSerie.classList.remove('hidden');
+            btnSortearSerie.disabled = true;
+
+            try {
+                const res = await fetch('/api/sortear_serie', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ opcao: opcao, filtros: filtros })
+                });
+
+                const dados = await res.json();
+                if (!res.ok) throw new Error(dados.error || 'Erro ao sortear série');
+
+                document.getElementById('res-serie-tipo').textContent = dados.tipo;
+                document.getElementById('res-serie-titulo').textContent = dados.titulo;
+                document.getElementById('res-serie-ano').textContent = dados.ano;
+                document.getElementById('res-serie-duracao').textContent = dados.duracao;
+                document.getElementById('res-serie-nota').textContent = dados.nota;
+                document.getElementById('res-serie-votos').textContent = parseInt(dados.votos).toLocaleString('pt-BR');
+                document.getElementById('res-serie-indice').textContent = (parseFloat(dados.indice) || 0).toFixed(2);
+                document.getElementById('res-serie-pais').textContent = dados.pais;
+                
+                const linkSerie = document.getElementById('res-serie-link');
+                if (dados.tmdb_id) {
+                    linkSerie.href = `https://www.themoviedb.org/tv/${dados.tmdb_id}`;
+                } else if (dados.imdb_id) {
+                    linkSerie.href = `https://www.imdb.com/title/${dados.imdb_id}/`;
+                }
+
+                const imgPosterSerie = document.getElementById('res-serie-poster');
+                if (dados.poster_url) {
+                    imgPosterSerie.src = dados.poster_url;
+                } else {
+                    imgPosterSerie.src = "https://via.placeholder.com/240x360/333/999?text=Sem+Capa";
+                }
+
+                updateMapSerie(dados.coordenadas);
+
+                loadingSpinnerSerie.classList.add('hidden');
+                resultadoContainerSerie.classList.remove('hidden');
+
+                if(!mapSerie) initMapSerie();
+                setTimeout(() => mapSerie.invalidateSize(), 100);
+
+            } catch (error) {
+                alert(error.message);
+                loadingSpinnerSerie.classList.add('hidden');
+            } finally {
+                btnSortearSerie.disabled = false;
+            }
+        });
+    }
+
+    // ==========================================
+    // LÓGICA DE SORTEIO DE LIVROS
+    // ==========================================
+    const btnSortearLivro = document.getElementById('btn-sortear-livro');
+    const resultadoContainerLivro = document.getElementById('resultado-container-livro');
+    const loadingSpinnerLivro = document.getElementById('loading-spinner-livro');
+
+    const btnBuscarLivroTitulo = document.getElementById('btn-buscar-livro-titulo');
+    if (btnBuscarLivroTitulo) {
+        btnBuscarLivroTitulo.addEventListener('click', () => btnSortearLivro.click());
+    }
+
+    if (btnSortearLivro) {
+        btnSortearLivro.addEventListener('click', async () => {
+            const filtros = {
+                titulo: document.getElementById('filtro-livro-titulo').value,
+                assunto: document.getElementById('filtro-livro-assunto').value,
+                autor: document.getElementById('filtro-livro-autor').value
+            };
+            
+            resultadoContainerLivro.classList.add('hidden');
+            loadingSpinnerLivro.classList.remove('hidden');
+            btnSortearLivro.disabled = true;
+
+            try {
+                const res = await fetch('/api/sortear_livro', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ filtros: filtros })
+                });
+
+                const dados = await res.json();
+                if (!res.ok) throw new Error(dados.error || 'Erro ao sortear livro');
+
+                document.getElementById('res-livro-titulo').textContent = dados.titulo;
+                document.getElementById('res-livro-autor').textContent = dados.autor;
+                document.getElementById('res-livro-ano').textContent = dados.ano;
+                document.getElementById('res-livro-paginas').textContent = dados.paginas;
+                document.getElementById('res-livro-nota').textContent = dados.nota;
+                document.getElementById('res-livro-sinopse').textContent = dados.sinopse;
+                
+                const link = document.getElementById('res-livro-link');
+                if (dados.link) {
+                    link.href = dados.link;
+                    link.style.display = 'inline-block';
+                } else {
+                    link.style.display = 'none';
+                }
+
+                const imgCapa = document.getElementById('res-livro-capa');
+                if (dados.capa_url) {
+                    imgCapa.src = dados.capa_url;
+                } else {
+                    imgCapa.src = "https://via.placeholder.com/240x360/333/999?text=Sem+Capa";
+                }
+
+                loadingSpinnerLivro.classList.add('hidden');
+                resultadoContainerLivro.classList.remove('hidden');
+
+            } catch (error) {
+                alert(error.message);
+                loadingSpinnerLivro.classList.add('hidden');
+            } finally {
+                btnSortearLivro.disabled = false;
+            }
+        });
+    }
 
     // ==========================================
     // HISTÓRICO
@@ -206,7 +397,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         <h3>${item.titulo}</h3>
                         <div class="details">${item.ano}</div>
                         <div class="stats">
-                            <span><i class="ph ph-star-fill" style="color:#f1c40f;"></i> ${item.nota}</span>
+                            <span title="Nota IMDb"><i class="ph ph-star-fill" style="color:#f1c40f;"></i> ${item.nota}</span>
+                            <span title="Nota KM" style="color: var(--primary-color); font-weight: bold; margin-left: auto;">KM: ${(parseFloat(item.indice) || 0).toFixed(2)}</span>
                         </div>
                         <div style="font-size: 0.75rem; margin-top: 0.2rem; color: #eee;">
                             <i class="ph ph-map-pin"></i> ${item.pais}
