@@ -33,6 +33,9 @@
                 <button class="nav-btn" data-target="tela-livros">
                     <i class="ph ph-book-open"></i> Livros
                 </button>
+                <button class="nav-btn" data-target="tela-musicas">
+                    <i class="ph ph-music-notes"></i> Músicas
+                </button>
                 <button class="nav-btn" data-target="tela-historico">
                     <i class="ph ph-clock-counter-clockwise"></i> Histórico
                 </button>
@@ -317,12 +320,39 @@
             <section id="tela-livros" class="view-section">
                 <h2><i class="ph ph-book-open"></i> Sorteio de Livros</h2>
                 
+                <div class="sorteio-options">
+                    <label class="radio-card">
+                        <input type="radio" name="opcao-livro" value="1" checked>
+                        <div class="card-content">
+                            <i class="ph ph-shuffle"></i>
+                            <div class="text">
+                                <strong>Aleatório</strong>
+                                <span>País aleatório</span>
+                            </div>
+                        </div>
+                    </label>
+                    <label class="radio-card">
+                        <input type="radio" name="opcao-livro" value="2">
+                        <div class="card-content">
+                            <i class="ph ph-globe-hemisphere-west"></i>
+                            <div class="text">
+                                <strong>Global</strong>
+                                <span>Qualquer livro</span>
+                            </div>
+                        </div>
+                    </label>
+                </div>
+
                 <div class="filtros-container" style="background-color: var(--bg-sidebar); padding: 1rem 1.5rem; border-radius: 12px; margin-bottom: 1.5rem; border: 1px solid var(--border-color);">
                     <h3 style="margin-bottom: 0.8rem; font-size: 1rem;"><i class="ph ph-funnel"></i> Filtros (Opcional)</h3>
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem;">
                         <div>
+                            <label style="display: block; font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.2rem;">País (Local)</label>
+                            <input type="text" id="filtro-livro-pais" list="paises-list" placeholder="Ex: Brazil, France" style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary);">
+                        </div>
+                        <div>
                             <label style="display: block; font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.2rem;">Assunto / Gênero</label>
-                            <input type="text" id="filtro-livro-assunto" placeholder="Ex: Fantasy, Science, History" style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary);">
+                            <input type="text" id="filtro-livro-assunto" placeholder="Ex: Fantasy, History" style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary);">
                         </div>
                         <div>
                             <label style="display: block; font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.2rem;">Autor</label>
@@ -350,27 +380,125 @@
                     <p>Buscando nas bibliotecas...</p>
                 </div>
 
-                <div id="resultado-container-livro" class="hidden" style="margin-top: 2rem; display: flex; justify-content: center;">
-                    <div class="movie-card" id="res-livro-card" style="width: 340px; height: 510px;">
-                        <img id="res-livro-capa" src="" alt="Capa do Livro" style="object-fit: contain; background: #1a1a1a;">
-                        
-                        <div class="movie-info">
-                            <h3 id="res-livro-titulo"></h3>
-                            <div class="details">
-                                <span id="res-livro-autor"></span>
-                            </div>
-                            <div class="details" style="margin-top: 0.5rem; font-size: 0.85rem;">
-                                <span id="res-livro-ano"></span> • <span id="res-livro-paginas"></span> páginas
-                            </div>
+                <div id="resultado-container-livro" class="hidden" style="margin-top: 2rem;">
+                    <div class="result-layout">
+                        <div class="movie-card" id="res-livro-card">
+                            <img id="res-livro-capa" src="" alt="Capa do Livro" style="object-fit: contain; background: #1a1a1a;">
                             
-                            <div class="stats" style="margin-top: 0.5rem;">
-                                <span title="Nota"><i class="ph ph-star-fill" style="color: #f1c40f;"></i> <span id="res-livro-nota"></span></span>
+                            <div class="movie-info">
+                                <span class="badge" id="res-livro-tipo" style="align-self: flex-start; margin-bottom: 0.5rem; font-size: 0.7rem;"></span>
+                                <h3 id="res-livro-titulo"></h3>
+                                <div class="details">
+                                    <span id="res-livro-autor"></span>
+                                </div>
+                                <div class="details" style="margin-top: 0.5rem; font-size: 0.85rem;">
+                                    <span id="res-livro-ano"></span> • <span id="res-livro-paginas"></span> páginas
+                                </div>
+                                
+                                <div class="stats" style="margin-top: 0.5rem;">
+                                    <span title="Nota"><i class="ph ph-star-fill" style="color: #f1c40f;"></i> <span id="res-livro-nota"></span></span>
+                                </div>
+                                <div style="font-size: 0.8rem; margin-top: 0.2rem; color: #eee;">
+                                    <i class="ph ph-map-pin"></i> <span id="res-livro-pais"></span>
+                                </div>
+                                <div style="font-size: 0.8rem; margin-top: 0.5rem; color: #eee; max-height: 100px; overflow-y: auto;">
+                                    <p id="res-livro-sinopse" style="margin: 0; line-height: 1.4;"></p>
+                                </div>
+                                
+                                <a id="res-livro-link" href="#" target="_blank" class="btn-imdb" style="margin-top: 1rem;">Abrir no OpenLibrary</a>
                             </div>
-                            <div style="font-size: 0.8rem; margin-top: 0.5rem; color: #eee; max-height: 100px; overflow-y: auto;">
-                                <p id="res-livro-sinopse" style="margin: 0; line-height: 1.4;"></p>
+                        </div>
+
+                        <div class="map-wrapper">
+                            <div id="map-container-livro" style="width: 100%; height: 100%; background-color: var(--map-water);"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Tela Músicas -->
+            <section id="tela-musicas" class="view-section">
+                <h2><i class="ph ph-music-notes"></i> Sorteio de Músicas</h2>
+                
+                <div class="sorteio-options">
+                    <label class="radio-card">
+                        <input type="radio" name="opcao-musica" value="1" checked>
+                        <div class="card-content">
+                            <i class="ph ph-music-note"></i>
+                            <div class="text">
+                                <strong>Música Aleatória</strong>
+                                <span>País aleatório</span>
                             </div>
+                        </div>
+                    </label>
+                    <label class="radio-card">
+                        <input type="radio" name="opcao-musica" value="2">
+                        <div class="card-content">
+                            <i class="ph ph-disc"></i>
+                            <div class="text">
+                                <strong>Álbum Aleatório</strong>
+                                <span>País aleatório</span>
+                            </div>
+                        </div>
+                    </label>
+                </div>
+
+                <div class="filtros-container" style="background-color: var(--bg-sidebar); padding: 1rem 1.5rem; border-radius: 12px; margin-bottom: 1.5rem; border: 1px solid var(--border-color);">
+                    <h3 style="margin-bottom: 0.8rem; font-size: 1rem;"><i class="ph ph-funnel"></i> Filtros (Opcional)</h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem;">
+                        <div>
+                            <label style="display: block; font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.2rem;">País</label>
+                            <input type="text" id="filtro-musica-pais" list="paises-list" placeholder="Ex: BR, US, FR" style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary);">
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.2rem;">Artista</label>
+                            <input type="text" id="filtro-musica-artista" placeholder="Ex: Legiao Urbana" style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary);">
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.2rem;">Época (Ano Min - Ano Máx)</label>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <input type="number" id="filtro-musica-ano-min" placeholder="1980" style="width: 50%; padding: 0.6rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary);">
+                                <input type="number" id="filtro-musica-ano-max" placeholder="1999" style="width: 50%; padding: 0.6rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary);">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <button id="btn-sortear-musica" class="btn-primary action-btn-small">
+                    <i class="ph ph-magic-wand"></i> Sortear!
+                </button>
+
+                <div id="loading-spinner-musica" class="hidden" style="margin-top: 1.5rem; text-align: center;">
+                    <i class="ph ph-spinner-gap spinner-icon" style="font-size: 2rem;"></i>
+                    <p>Sintonizando...</p>
+                </div>
+
+                <div id="resultado-container-musica" class="hidden" style="margin-top: 2rem;">
+                    <div class="result-layout">
+                        <div class="movie-card" id="res-musica-card">
+                            <img id="res-musica-capa" src="" alt="Capa" style="object-fit: cover; background: #1a1a1a;">
                             
-                            <a id="res-livro-link" href="#" target="_blank" class="btn-imdb" style="margin-top: 1rem;">Ver no Google Books</a>
+                            <div class="movie-info">
+                                <span class="badge" id="res-musica-tipo" style="align-self: flex-start; margin-bottom: 0.5rem; font-size: 0.7rem;"></span>
+                                <h3 id="res-musica-titulo"></h3>
+                                <div class="details">
+                                    <span id="res-musica-artista"></span>
+                                </div>
+                                <div class="details" style="margin-top: 0.5rem; font-size: 0.85rem;">
+                                    <span id="res-musica-album"></span> • <span id="res-musica-ano"></span>
+                                </div>
+                                <div style="font-size: 0.8rem; margin-top: 0.5rem; color: #eee;">
+                                    <i class="ph ph-map-pin"></i> <span id="res-musica-pais"></span>
+                                </div>
+                                
+                                <a id="res-musica-link" href="#" target="_blank" class="btn-imdb" style="margin-top: 1rem; background-color: #1DB954; color: white;">
+                                    <i class="ph ph-spotify-logo"></i> Ouvir no Spotify
+                                </a>
+                            </div>
+                        </div>
+
+                        <div class="map-wrapper">
+                            <div id="map-container-musica" style="width: 100%; height: 100%; background-color: var(--map-water);"></div>
                         </div>
                     </div>
                 </div>

@@ -16,6 +16,8 @@ document.addEventListener('DOMContentLoaded', () => {
             // Evita bug de render do Leaflet quando a aba era display:none
             if(targetId === 'tela-sorteio' && map) setTimeout(() => map.invalidateSize(), 100);
             if(targetId === 'tela-series' && mapSerie) setTimeout(() => mapSerie.invalidateSize(), 100);
+            if(targetId === 'tela-livros' && mapLivro) setTimeout(() => mapLivro.invalidateSize(), 100);
+            if(targetId === 'tela-musicas' && mapMusica) setTimeout(() => mapMusica.invalidateSize(), 100);
         });
     });
 
@@ -116,6 +118,80 @@ document.addEventListener('DOMContentLoaded', () => {
             mapSerieMarker = L.marker([coordenadas.lat, coordenadas.lon], {icon: customIcon}).addTo(mapSerie);
         } else {
             mapSerie.setView([20, 0], 1);
+        }
+    }
+
+    let mapLivro = null;
+    let mapLivroMarker = null;
+
+    function initMapLivro() {
+        if (mapLivro) return;
+        mapLivro = L.map('map-container-livro', {
+            zoomControl: false,
+            dragging: false,
+            scrollWheelZoom: false,
+            doubleClickZoom: false
+        }).setView([20, 0], 1);
+
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap'
+        }).addTo(mapLivro);
+    }
+
+    function updateMapLivro(coordenadas) {
+        if (!mapLivro) initMapLivro();
+        if (mapLivroMarker) mapLivro.removeLayer(mapLivroMarker);
+
+        if (coordenadas && coordenadas.lat && coordenadas.lon) {
+            mapLivro.setView([coordenadas.lat, coordenadas.lon], 4, { animate: true, duration: 1.5 });
+            
+            const customIcon = L.divIcon({
+                className: 'custom-pin',
+                html: `<div style="background-color: var(--primary-color); width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 10px rgba(0,0,0,0.5);"></div>`,
+                iconSize: [20, 20],
+                iconAnchor: [10, 10]
+            });
+
+            mapLivroMarker = L.marker([coordenadas.lat, coordenadas.lon], {icon: customIcon}).addTo(mapLivro);
+        } else {
+            mapLivro.setView([20, 0], 1);
+        }
+    }
+
+    let mapMusica = null;
+    let mapMusicaMarker = null;
+
+    function initMapMusica() {
+        if (mapMusica) return;
+        mapMusica = L.map('map-container-musica', {
+            zoomControl: false,
+            dragging: false,
+            scrollWheelZoom: false,
+            doubleClickZoom: false
+        }).setView([20, 0], 1);
+
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap'
+        }).addTo(mapMusica);
+    }
+
+    function updateMapMusica(coordenadas) {
+        if (!mapMusica) initMapMusica();
+        if (mapMusicaMarker) mapMusica.removeLayer(mapMusicaMarker);
+
+        if (coordenadas && coordenadas.lat && coordenadas.lon) {
+            mapMusica.setView([coordenadas.lat, coordenadas.lon], 4, { animate: true, duration: 1.5 });
+            
+            const customIcon = L.divIcon({
+                className: 'custom-pin',
+                html: `<div style="background-color: #1DB954; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 10px rgba(0,0,0,0.5);"></div>`,
+                iconSize: [20, 20],
+                iconAnchor: [10, 10]
+            });
+
+            mapMusicaMarker = L.marker([coordenadas.lat, coordenadas.lon], {icon: customIcon}).addTo(mapMusica);
+        } else {
+            mapMusica.setView([20, 0], 1);
         }
     }
 
@@ -316,10 +392,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (btnSortearLivro) {
         btnSortearLivro.addEventListener('click', async () => {
+            const opcao = document.querySelector('input[name="opcao-livro"]:checked') ? document.querySelector('input[name="opcao-livro"]:checked').value : '1';
             const filtros = {
                 titulo: document.getElementById('filtro-livro-titulo').value,
                 assunto: document.getElementById('filtro-livro-assunto').value,
-                autor: document.getElementById('filtro-livro-autor').value
+                autor: document.getElementById('filtro-livro-autor').value,
+                pais: document.getElementById('filtro-livro-pais').value
             };
             
             resultadoContainerLivro.classList.add('hidden');
@@ -330,17 +408,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 const res = await fetch('/api/sortear_livro', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ filtros: filtros })
+                    body: JSON.stringify({ opcao: opcao, filtros: filtros })
                 });
 
                 const dados = await res.json();
                 if (!res.ok) throw new Error(dados.error || 'Erro ao sortear livro');
 
+                document.getElementById('res-livro-tipo').textContent = dados.tipo || 'LIVRO';
                 document.getElementById('res-livro-titulo').textContent = dados.titulo;
                 document.getElementById('res-livro-autor').textContent = dados.autor;
                 document.getElementById('res-livro-ano').textContent = dados.ano;
                 document.getElementById('res-livro-paginas').textContent = dados.paginas;
                 document.getElementById('res-livro-nota').textContent = dados.nota;
+                document.getElementById('res-livro-pais').textContent = dados.pais || 'Desconhecido';
                 document.getElementById('res-livro-sinopse').textContent = dados.sinopse;
                 
                 const link = document.getElementById('res-livro-link');
@@ -358,14 +438,119 @@ document.addEventListener('DOMContentLoaded', () => {
                     imgCapa.src = "https://via.placeholder.com/240x360/333/999?text=Sem+Capa";
                 }
 
+                updateMapLivro(dados.coordenadas);
+
+                // Salvar no histórico local
+                const histItem = {
+                    id: Date.now().toString(),
+                    modo: dados.tipo,
+                    pais: dados.pais,
+                    titulo: dados.titulo,
+                    ano: dados.ano,
+                    nota: dados.nota,
+                    indice: 0,
+                    link: dados.link,
+                    poster_url: dados.capa_url,
+                    is_book: true
+                };
+                salvarNoHistoricoLocal(histItem);
+
                 loadingSpinnerLivro.classList.add('hidden');
                 resultadoContainerLivro.classList.remove('hidden');
+
+                if(!mapLivro) initMapLivro();
+                setTimeout(() => mapLivro.invalidateSize(), 100);
 
             } catch (error) {
                 alert(error.message);
                 loadingSpinnerLivro.classList.add('hidden');
             } finally {
                 btnSortearLivro.disabled = false;
+            }
+        });
+    }
+
+    // ==========================================
+    // LÓGICA DE SORTEIO DE MÚSICAS
+    // ==========================================
+    const btnSortearMusica = document.getElementById('btn-sortear-musica');
+    const resultadoContainerMusica = document.getElementById('resultado-container-musica');
+    const loadingSpinnerMusica = document.getElementById('loading-spinner-musica');
+
+    if (btnSortearMusica) {
+        btnSortearMusica.addEventListener('click', async () => {
+            const opcao = document.querySelector('input[name="opcao-musica"]:checked') ? document.querySelector('input[name="opcao-musica"]:checked').value : '1';
+            const filtros = {
+                pais: document.getElementById('filtro-musica-pais').value,
+                artista: document.getElementById('filtro-musica-artista').value,
+                epoca_min: document.getElementById('filtro-musica-ano-min').value,
+                epoca_max: document.getElementById('filtro-musica-ano-max').value
+            };
+            
+            resultadoContainerMusica.classList.add('hidden');
+            loadingSpinnerMusica.classList.remove('hidden');
+            btnSortearMusica.disabled = true;
+
+            try {
+                const res = await fetch('/api/sortear_musica', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ opcao: opcao, filtros: filtros })
+                });
+
+                const dados = await res.json();
+                if (!res.ok) throw new Error(dados.error || 'Erro ao sortear música');
+
+                document.getElementById('res-musica-tipo').textContent = dados.tipo || 'MÚSICA';
+                document.getElementById('res-musica-titulo').textContent = dados.titulo;
+                document.getElementById('res-musica-artista').textContent = dados.artista;
+                document.getElementById('res-musica-album').textContent = dados.album;
+                document.getElementById('res-musica-ano').textContent = dados.ano;
+                document.getElementById('res-musica-pais').textContent = dados.pais || 'Desconhecido';
+                
+                const link = document.getElementById('res-musica-link');
+                if (dados.link) {
+                    link.href = dados.link;
+                    link.style.display = 'inline-block';
+                } else {
+                    link.style.display = 'none';
+                }
+
+                const imgCapa = document.getElementById('res-musica-capa');
+                if (dados.capa_url) {
+                    imgCapa.src = dados.capa_url;
+                } else {
+                    imgCapa.src = "https://via.placeholder.com/240x360/333/999?text=Sem+Capa";
+                }
+
+                updateMapMusica(dados.coordenadas);
+
+                // Salvar no histórico local
+                const histItem = {
+                    id: Date.now().toString(),
+                    modo: dados.tipo,
+                    pais: dados.pais,
+                    titulo: dados.titulo,
+                    ano: dados.ano,
+                    nota: '-', // musica não tem nota
+                    indice: 0,
+                    link: dados.link,
+                    poster_url: dados.capa_url,
+                    is_music: true
+                };
+                salvarNoHistoricoLocal(histItem);
+
+                loadingSpinnerMusica.classList.add('hidden');
+                resultadoContainerMusica.classList.remove('hidden');
+
+                if(!mapMusica) initMapMusica();
+                setTimeout(() => mapMusica.invalidateSize(), 100);
+
+            } catch (error) {
+                alert(error.message);
+                loadingSpinnerMusica.classList.add('hidden');
+            } finally {
+                btnSortearMusica.disabled = false;
             }
         });
     }
@@ -428,10 +613,23 @@ document.addEventListener('DOMContentLoaded', () => {
             if (item.titulo !== 'Registro Antigo') {
                 const imgUrl = item.poster_url || "https://via.placeholder.com/240x360/333/999?text=Sem+Capa";
                 const isImdb = item.imdb_id && String(item.imdb_id).startsWith('tt');
-                const linkUrl = isImdb 
-                    ? `https://www.imdb.com/title/${item.imdb_id}/` 
-                    : (item.imdb_id ? `https://www.themoviedb.org/tv/${item.imdb_id}` : '#');
-                const linkText = isImdb ? 'Abrir no IMDb' : 'Abrir no TMDB';
+                
+                let linkUrl = '#';
+                let linkText = 'Abrir';
+
+                if (item.is_music) {
+                    linkUrl = item.link || '#';
+                    linkText = 'Ouvir no Spotify';
+                } else if (item.is_book) {
+                    linkUrl = item.link || '#';
+                    linkText = 'Abrir no OpenLibrary';
+                } else if (isImdb) {
+                    linkUrl = `https://www.imdb.com/title/${item.imdb_id}/`;
+                    linkText = 'Abrir no IMDb';
+                } else if (item.imdb_id) {
+                    linkUrl = `https://www.themoviedb.org/tv/${item.imdb_id}`;
+                    linkText = 'Abrir no TMDb';
+                }
 
                 const card = document.createElement('div');
                 card.className = 'movie-card';
@@ -443,7 +641,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div class="details">${item.ano || ''}</div>
                         <div class="stats">
                             <span title="Nota"><i class="ph ph-star-fill" style="color:#f1c40f;"></i> ${item.nota || '?'}</span>
-                            <span title="Nota KM" style="color: var(--primary-color); font-weight: bold; margin-left: auto;">KM: ${(parseFloat(item.indice) || 0).toFixed(2)}</span>
+                            ${(item.is_book || item.is_music) ? '' : `<span title="Nota KM" style="color: var(--primary-color); font-weight: bold; margin-left: auto;">KM: ${(parseFloat(item.indice) || 0).toFixed(2)}</span>`}
                         </div>
                         <div style="font-size: 0.75rem; margin-top: 0.2rem; color: #eee;">
                             <i class="ph ph-map-pin"></i> ${item.pais || 'Desconhecido'}

@@ -62,11 +62,28 @@ def sortear():
 def sortear_livro():
     import livros
     data = request.json or {}
+    opcao = str(data.get('opcao', '1'))
     filtros = data.get('filtros', {})
     
-    resultado = livros.realizar_sorteio_livro(filtros)
+    resultado = livros.realizar_sorteio_livro(opcao, filtros)
     if resultado is None:
         return jsonify({"error": "Erro desconhecido ao buscar livro."}), 500
+    if "error" in resultado:
+        return jsonify(resultado), 400
+        
+    return jsonify(resultado)
+
+@app.route('/api/sortear_musica', methods=['POST'])
+@limiter.limit("15 per minute")
+def sortear_musica():
+    import musicas
+    data = request.json or {}
+    opcao = str(data.get('opcao', '1'))
+    filtros = data.get('filtros', {})
+    
+    resultado = musicas.realizar_sorteio_musica(opcao, filtros)
+    if resultado is None:
+        return jsonify({"error": "Erro desconhecido ao buscar música."}), 500
     if "error" in resultado:
         return jsonify(resultado), 400
         

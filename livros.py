@@ -1,15 +1,28 @@
 import requests
 import random
+from geopy.geocoders import Nominatim
 
-def realizar_sorteio_livro(filtros=None):
+PAISES_COMUNS = [
+    "Brazil", "United States", "United Kingdom", "France", "Germany", 
+    "Italy", "Spain", "Japan", "Russia", "China", "India", "Mexico", 
+    "Argentina", "Canada", "Australia", "South Africa", "Egypt", 
+    "Greece", "Turkey", "Portugal", "Sweden", "Norway", "Colombia",
+    "Chile", "Peru", "Ireland", "Netherlands", "Belgium", "Poland"
+]
+
+def realizar_sorteio_livro(opcao="1", filtros=None):
     """
-    Realiza o sorteio de um livro usando a API do OpenLibrary.
+    Realiza o sorteio de um livro usando a API do OpenLibrary com suporte a país e mapa.
+    opcao:
+      1: Livro Aleatório (do país sorteado/escolhido)
+      2: Livro Global (Qualquer país, aleatório)
     """
     if filtros is None:
         filtros = {}
 
     assunto = filtros.get("assunto", "").strip().lower()
     autor = filtros.get("autor", "").strip().lower()
+    pais_filtro = filtros.get("pais", "").strip()
 
     params = {}
     is_title_search = False
@@ -17,23 +30,39 @@ def realizar_sorteio_livro(filtros=None):
     if filtros.get("titulo"):
         params["title"] = filtros["titulo"].strip()
         is_title_search = True
+        tipo_sorteio = "BUSCA POR TÍTULO"
+        pais_escolhido = pais_filtro if pais_filtro else "Desconhecido"
     else:
         if assunto:
             params["subject"] = assunto
         if autor:
             params["author"] = autor
 
-        if not params:
-            temas = ["fiction", "history", "science", "fantasy", "mystery", "philosophy", "biography", "adventure"]
-            params["subject"] = random.choice(temas)
+        # Tratar a opção de sorteio (1 ou 2)
+        if str(opcao) == "2":
+            # Global
+            tipo_sorteio = "LIVRO GLOBAL"
+            pais_escolhido = "Desconhecido"
+            if not params:
+                temas = ["fiction", "history", "science", "fantasy", "mystery", "philosophy", "biography", "adventure"]
+                params["subject"] = random.choice(temas)
+        else:
+            # Opção 1 (País)
+            if pais_filtro:
+                pais_escolhido = pais_filtro
+            else:
+                pais_escolhido = random.choice(PAISES_COMUNS)
+                
+            params["place"] = pais_escolhido
+            tipo_sorteio = f"LIVRO ALEATÓRIO: {pais_escolhido.upper()}"
 
-    # Pegamos os primeiros resultados
-    params["limit"] = 10 if is_title_search else 100
+    # Pegamos um conjunto de resultados para sortear um aleatoriamente
+    params["limit"] = 50
 
     url = "https://openlibrary.org/search.json"
 
     headers = {
-        "User-Agent": "KinoMap/1.0 (seu_email_ou_site_aqui)"
+        "User-Agent": "KinoMap/1.0"
     }
 
     try:
@@ -45,12 +74,18 @@ def realizar_sorteio_livro(filtros=None):
         items = dados.get("docs", [])
         
         if not items:
-            return {"error": "Nenhum livro encontrado com esses filtros na OpenLibrary."}
+            return {"error": "Nenhum livro encontrado com esses filtros."}
 
+        # Seleciona o livro
         if is_title_search:
             livro_escolhido = items[0]
         else:
+            # Aleatório ou Global
             livro_escolhido = random.choice(items)
+            
+        # Se Global, tentar adivinhar o país baseado no 'place' se disponível
+        if str(opcao) == "2" and "place" in livro_escolhido and livro_escolhido["place"]:
+            pais_escolhido = livro_escolhido["place"][0]
         
         titulo = livro_escolhido.get("title", "Título Desconhecido")
         
@@ -87,16 +122,40 @@ def realizar_sorteio_livro(filtros=None):
                         elif isinstance(desc, str):
                             sinopse = desc
             except:
-                pass # Ignora erro de fetch da sinopse e mantém a default
+                pass 
 
         if len(sinopse) > 300:
             sinopse = sinopse[:297] + "..."
 
         cover_i = livro_escolhido.get("cover_i")
+        capa = ""
         if cover_i:
             capa = f"https://covers.openlibrary.org/b/id/{cover_i}-L.jpg"
         else:
-            capa = ""
+            # Fallback para o Google Books API se não tiver capa
+            try:
+                gb_url = "https://www.googleapis.com/books/v1/volumes"
+                gb_params = {"q": f"intitle:{titulo} inauthor:{autores.split(',')[0]}", "maxResults": 1}
+                gb_res = requests.get(gb_url, params=gb_params, timeout=5)
+                if gb_res.status_code == 200:
+                    gb_items = gb_res.json().get("items", [])
+                    if gb_items:
+                        image_links = gb_items[0].get("volumeInfo", {}).get("imageLinks", {})
+                        # Tentar pegar um tamanho maior se possível, senão thumbnail
+                        capa = image_links.get("thumbnail", "").replace("http:", "https:")
+            except Exception:
+                pass
+            
+        # Buscar coordenadas do país para o mapa
+        coords = None
+        if pais_escolhido and pais_escolhido != "Desconhecido":
+            try:
+                geolocator = Nominatim(user_agent="filmes_global_app")
+                location = geolocator.geocode(pais_escolhido)
+                if location:
+                    coords = {"lat": location.latitude, "lon": location.longitude}
+            except Exception:
+                pass
 
         return {
             "titulo": titulo,
@@ -108,7 +167,9 @@ def realizar_sorteio_livro(filtros=None):
             "sinopse": sinopse,
             "link": link,
             "capa_url": capa,
-            "tipo": "BUSCA POR TÍTULO" if is_title_search else "LIVRO ALEATÓRIO"
+            "tipo": tipo_sorteio,
+            "pais": pais_escolhido,
+            "coordenadas": coords
         }
 
     except Exception as e:
