@@ -24,6 +24,7 @@ def realizar_sorteio_musica(opcao="1", filtros=None):
     pais_filtro = filtros.get("pais", "").strip().upper()
     epoca_min = filtros.get("epoca_min", "").strip()
     epoca_max = filtros.get("epoca_max", "").strip()
+    genero = filtros.get("genero", "").strip().lower()
 
     # opcao 1 = Música, opcao 2 = Álbum
     sortear_album = (str(opcao) == "2")
@@ -32,6 +33,25 @@ def realizar_sorteio_musica(opcao="1", filtros=None):
     
     if artista:
         queries.append(f'artist:"{artista}"')
+        
+    if genero:
+        MAPA_GENEROS = {
+            "rock": ['tag:"rock"', 'tag:"grunge"', 'tag:"metal"', 'tag:"heavy metal"', 'tag:"punk"', 'tag:"hard rock"', 'tag:"indie rock"', 'tag:"alternative rock"'],
+            "eletronica": ['tag:"electronic"', 'tag:"techno"', 'tag:"trance"', 'tag:"house"', 'tag:"dance"', 'tag:"edm"'],
+            "eletrônica": ['tag:"electronic"', 'tag:"techno"', 'tag:"trance"', 'tag:"house"', 'tag:"dance"', 'tag:"edm"'],
+            "hip hop": ['tag:"hip hop"', 'tag:"rap"', 'tag:"trap"'],
+            "rap": ['tag:"hip hop"', 'tag:"rap"', 'tag:"trap"'],
+            "pop": ['tag:"pop"', 'tag:"k-pop"', 'tag:"synthpop"', 'tag:"indie pop"'],
+            "metal": ['tag:"metal"', 'tag:"heavy metal"', 'tag:"death metal"', 'tag:"black metal"', 'tag:"thrash metal"', 'tag:"doom metal"'],
+            "samba": ['tag:"samba"', 'tag:"pagode"'],
+            "mpb": ['tag:"mpb"', 'tag:"bossa nova"']
+        }
+        
+        if genero in MAPA_GENEROS:
+            tags_or = " OR ".join(MAPA_GENEROS[genero])
+            queries.append(f'({tags_or})')
+        else:
+            queries.append(f'tag:"{genero}"')
     
     if epoca_min or epoca_max:
         e_min = epoca_min if epoca_min else "*"

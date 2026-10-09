@@ -481,6 +481,7 @@ document.addEventListener('DOMContentLoaded', () => {
         btnSortearMusica.addEventListener('click', async () => {
             const opcao = document.querySelector('input[name="opcao-musica"]:checked') ? document.querySelector('input[name="opcao-musica"]:checked').value : '1';
             const filtros = {
+                genero: document.getElementById('filtro-musica-genero') ? document.getElementById('filtro-musica-genero').value : '',
                 pais: document.getElementById('filtro-musica-pais').value,
                 artista: document.getElementById('filtro-musica-artista').value,
                 epoca_min: document.getElementById('filtro-musica-ano-min').value,
