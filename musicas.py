@@ -16,6 +16,22 @@ def map_country_code_to_name(code):
     except: pass
     return code
 
+import time
+
+def fetch_musicbrainz(url, params, headers, max_retries=3):
+    for attempt in range(max_retries):
+        try:
+            res = requests.get(url, params=params, headers=headers, timeout=10)
+            if res.status_code == 200:
+                return res
+            elif res.status_code == 503:
+                time.sleep(1.2)
+            else:
+                break
+        except requests.exceptions.RequestException:
+            time.sleep(1.2)
+    return None
+
 def realizar_sorteio_musica(opcao="1", filtros=None):
     if filtros is None:
         filtros = {}
@@ -27,7 +43,7 @@ def realizar_sorteio_musica(opcao="1", filtros=None):
     genero = filtros.get("genero", "").strip().lower()
 
     sortear_album = (str(opcao) == "2")
-    headers = {"User-Agent": "KinoMap/1.0"}
+    headers = {"User-Agent": "AntigravityApp/1.0 ( myemail@example.com )"}
 
     # ==========================================
     # PASSO 1: ENCONTRAR O ARTISTA
@@ -75,16 +91,17 @@ def realizar_sorteio_musica(opcao="1", filtros=None):
         mb_url_artist = "https://musicbrainz.org/ws/2/artist/"
         offset = random.randint(0, 50) if not artista else 0
         
-        res_art = requests.get(mb_url_artist, params={"query": query_str, "fmt": "json", "limit": 20, "offset": offset}, headers=headers, timeout=10)
-        if res_art.status_code != 200:
+        res_art = fetch_musicbrainz(mb_url_artist, {"query": query_str, "fmt": "json", "limit": 20, "offset": offset}, headers)
+        if not res_art or res_art.status_code != 200:
             return {"error": "Erro ao buscar artista no MusicBrainz."}
             
         artists = res_art.json().get("artists", [])
         
         if not artists and offset > 0:
             # Tenta sem offset
-            res_art = requests.get(mb_url_artist, params={"query": query_str, "fmt": "json", "limit": 20, "offset": 0}, headers=headers, timeout=10)
-            artists = res_art.json().get("artists", [])
+            res_art = fetch_musicbrainz(mb_url_artist, {"query": query_str, "fmt": "json", "limit": 20, "offset": 0}, headers)
+            if res_art and res_art.status_code == 200:
+                artists = res_art.json().get("artists", [])
             
         if not artists:
             return {"error": "Nenhum artista encontrado com esses filtros de gênero/país/nome."}
@@ -114,8 +131,11 @@ def realizar_sorteio_musica(opcao="1", filtros=None):
         query_str_rel = " AND ".join(release_queries)
         
         mb_url_rel = "https://musicbrainz.org/ws/2/release/"
-        res_rel = requests.get(mb_url_rel, params={"query": query_str_rel, "fmt": "json", "limit": 50}, headers=headers, timeout=10)
+        res_rel = fetch_musicbrainz(mb_url_rel, {"query": query_str_rel, "fmt": "json", "limit": 50}, headers)
         
+        if not res_rel or res_rel.status_code != 200:
+            return {"error": "Erro ao buscar lançamentos no MusicBrainz."}
+
         releases = res_rel.json().get("releases", [])
         
         if not releases:
@@ -132,9 +152,9 @@ def realizar_sorteio_musica(opcao="1", filtros=None):
         musica = ""
         if not sortear_album and mbid:
             try:
-                rec_url = f"https://musicbrainz.org/ws/2/release/{mbid}?inc=recordings&fmt=json"
-                rec_res = requests.get(rec_url, headers=headers, timeout=5)
-                if rec_res.status_code == 200:
+                rec_url = f"https://musicbrainz.org/ws/2/release/{mbid}"
+                rec_res = fetch_musicbrainz(rec_url, {"inc": "recordings", "fmt": "json"}, headers)
+                if rec_res and rec_res.status_code == 200:
                     media = rec_res.json().get("media", [])
                     if media:
                         tracks = media[0].get("tracks", [])
