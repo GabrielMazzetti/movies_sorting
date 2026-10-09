@@ -26,13 +26,16 @@ def realizar_sorteio_musica(opcao="1", filtros=None):
     epoca_max = filtros.get("epoca_max", "").strip()
     genero = filtros.get("genero", "").strip().lower()
 
-    # opcao 1 = Música, opcao 2 = Álbum
     sortear_album = (str(opcao) == "2")
+    headers = {"User-Agent": "KinoMap/1.0"}
 
-    queries = []
+    # ==========================================
+    # PASSO 1: ENCONTRAR O ARTISTA
+    # ==========================================
+    artist_queries = []
     
     if artista:
-        queries.append(f'artist:"{artista}"')
+        artist_queries.append(f'artist:"{artista}"')
         
     if genero:
         MAPA_GENEROS = {
@@ -44,98 +47,89 @@ def realizar_sorteio_musica(opcao="1", filtros=None):
             "pop": ['tag:"pop"', 'tag:"k-pop"', 'tag:"synthpop"', 'tag:"indie pop"'],
             "metal": ['tag:"metal"', 'tag:"heavy metal"', 'tag:"death metal"', 'tag:"black metal"', 'tag:"thrash metal"', 'tag:"doom metal"'],
             "samba": ['tag:"samba"', 'tag:"pagode"'],
-            "mpb": ['tag:"mpb"', 'tag:"bossa nova"']
+            "mpb": ['tag:"mpb"', 'tag:"bossa nova"'],
+            "pagode": ['tag:"pagode"', 'tag:"samba"']
         }
         
         if genero in MAPA_GENEROS:
             tags_or = " OR ".join(MAPA_GENEROS[genero])
-            queries.append(f'({tags_or})')
+            artist_queries.append(f'({tags_or})')
         else:
-            queries.append(f'tag:"{genero}"')
-    
-    if epoca_min or epoca_max:
-        e_min = epoca_min if epoca_min else "*"
-        e_max = epoca_max if epoca_max else "*"
-        queries.append(f'date:[{e_min} TO {e_max}]')
-        
-    pais_escolhido = None
+            artist_queries.append(f'tag:"{genero}"')
+            
+    pais_escolhido = pais_filtro if pais_filtro else None
     if pais_filtro:
-        queries.append(f'country:{pais_filtro}')
-        pais_escolhido = pais_filtro
-    else:
-        # Se não tem artista, forçamos um país para não ficar muito lento
-        if not artista:
-            pais_escolhido = random.choice(PAISES_COMUNS_MUSICA)
-            queries.append(f'country:{pais_escolhido}')
+        artist_queries.append(f'country:{pais_filtro}')
 
-    # Adiciona type album para evitar singles se sorteando album
-    if sortear_album:
-        queries.append('type:album')
-
-    query_str = " AND ".join(queries) if queries else "type:album"
-
-    mb_url = "https://musicbrainz.org/ws/2/release/"
-    params = {
-        "query": query_str,
-        "fmt": "json",
-        "limit": 50,
-        "offset": random.randint(0, 100) if not artista else 0
-    }
-    
-    headers = {"User-Agent": "KinoMap/1.0"}
+    artist_id = None
+    artista_nome_found = None
 
     try:
-        res = requests.get(mb_url, params=params, headers=headers, timeout=15)
-        if res.status_code != 200:
-            return {"error": "Erro na API do MusicBrainz."}
-        
-        releases = res.json().get("releases", [])
-        if not releases:
-            # Se usou offset, tenta denovo sem offset
-            if params["offset"] > 0:
-                params["offset"] = 0
-                res = requests.get(mb_url, params=params, headers=headers, timeout=15)
-                releases = res.json().get("releases", [])
-            
-            if not releases:
-                return {"error": "Nenhuma música/álbum encontrado com esses filtros."}
+        if not artist_queries:
+            # Sem filtros de artista, genero ou país -> País aleatório
+            pais_escolhido = random.choice(PAISES_COMUNS_MUSICA)
+            query_str = f'country:{pais_escolhido}'
+        else:
+            query_str = " AND ".join(artist_queries)
 
-        # Filtra para evitar os que não tem artista
-        valid_releases = [r for r in releases if r.get('artist-credit') and r.get('title')]
-        if not valid_releases:
-            valid_releases = releases
+        mb_url_artist = "https://musicbrainz.org/ws/2/artist/"
+        offset = random.randint(0, 50) if not artista else 0
+        
+        res_art = requests.get(mb_url_artist, params={"query": query_str, "fmt": "json", "limit": 20, "offset": offset}, headers=headers, timeout=10)
+        if res_art.status_code != 200:
+            return {"error": "Erro ao buscar artista no MusicBrainz."}
             
-        release = random.choice(valid_releases)
+        artists = res_art.json().get("artists", [])
+        
+        if not artists and offset > 0:
+            # Tenta sem offset
+            res_art = requests.get(mb_url_artist, params={"query": query_str, "fmt": "json", "limit": 20, "offset": 0}, headers=headers, timeout=10)
+            artists = res_art.json().get("artists", [])
+            
+        if not artists:
+            return {"error": "Nenhum artista encontrado com esses filtros de gênero/país/nome."}
+            
+        artist_obj = random.choice(artists)
+        artist_id = artist_obj["id"]
+        artista_nome_found = artist_obj.get("name", "Artista Desconhecido")
+        
+        if artist_obj.get("country"):
+            pais_escolhido = artist_obj.get("country")
+        elif not pais_escolhido:
+            pais_escolhido = "US"
+
+        # ==========================================
+        # PASSO 2: BUSCAR RELEASE DO ARTISTA
+        # ==========================================
+        release_queries = [f'arid:{artist_id}']
+        
+        if epoca_min or epoca_max:
+            e_min = epoca_min if epoca_min else "*"
+            e_max = epoca_max if epoca_max else "*"
+            release_queries.append(f'date:[{e_min} TO {e_max}]')
+            
+        if sortear_album:
+            release_queries.append('type:album')
+            
+        query_str_rel = " AND ".join(release_queries)
+        
+        mb_url_rel = "https://musicbrainz.org/ws/2/release/"
+        res_rel = requests.get(mb_url_rel, params={"query": query_str_rel, "fmt": "json", "limit": 50}, headers=headers, timeout=10)
+        
+        releases = res_rel.json().get("releases", [])
+        
+        if not releases:
+            return {"error": f"Nenhum álbum/música de {artista_nome_found} encontrado(a) para essa época."}
+            
+        valid_releases = [r for r in releases if r.get('title')]
+        release = random.choice(valid_releases if valid_releases else releases)
         
         album = release.get("title", "Álbum Desconhecido")
-        artist_credit = release.get("artist-credit", [{}])[0]
-        artista_nome = artist_credit.get("name", "Artista Desconhecido")
-        artist_item = artist_credit.get("artist", {})
-        artist_id = artist_item.get("id")
-        
         ano = release.get("date", "Desconhecido")[:4] if release.get("date") else "Desconhecido"
         mbid = release.get("id")
-        
-        country_code = release.get("country", pais_escolhido)
-        
-        # Obter o país real do artista
-        if artist_id:
-            try:
-                r_art = requests.get(f"https://musicbrainz.org/ws/2/artist/{artist_id}?fmt=json", headers=headers, timeout=5)
-                if r_art.status_code == 200:
-                    art_data = r_art.json()
-                    if art_data.get("country"):
-                        country_code = art_data.get("country")
-            except:
-                pass
-                
-        if not country_code:
-            country_code = "US"
-        
-        pais_nome = map_country_code_to_name(country_code)
+        pais_nome = map_country_code_to_name(pais_escolhido)
 
         musica = ""
-        # Se opção for música, buscar as tracks do release
         if not sortear_album and mbid:
             try:
                 rec_url = f"https://musicbrainz.org/ws/2/release/{mbid}?inc=recordings&fmt=json"
@@ -151,7 +145,7 @@ def realizar_sorteio_musica(opcao="1", filtros=None):
                 pass
                 
         if not sortear_album and not musica:
-            musica = album # Fallback
+            musica = album
 
         tipo_str = "ÁLBUM ALEATÓRIO" if sortear_album else "MÚSICA ALEATÓRIA"
 
@@ -159,7 +153,7 @@ def realizar_sorteio_musica(opcao="1", filtros=None):
         capa = ""
         try:
             itunes_url = 'https://itunes.apple.com/search'
-            itunes_params = {'term': f'{artista_nome} {album}', 'entity': 'album', 'limit': 1}
+            itunes_params = {'term': f'{artista_nome_found} {album}', 'entity': 'album', 'limit': 1}
             itunes_res = requests.get(itunes_url, params=itunes_params, timeout=5)
             if itunes_res.status_code == 200:
                 results = itunes_res.json().get('results', [])
@@ -179,14 +173,13 @@ def realizar_sorteio_musica(opcao="1", filtros=None):
             except:
                 pass
 
-        # Link Spotify
-        query_spotify = f"{musica} {artista_nome}" if not sortear_album else f"{album} {artista_nome}"
+        query_spotify = f"{musica} {artista_nome_found}" if not sortear_album else f"{album} {artista_nome_found}"
         spotify_link = f"https://open.spotify.com/search/{quote(query_spotify)}"
 
         return {
             "tipo": tipo_str,
             "titulo": musica if not sortear_album else album,
-            "artista": artista_nome,
+            "artista": artista_nome_found,
             "album": album,
             "ano": ano,
             "pais": pais_nome,
