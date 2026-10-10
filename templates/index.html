@@ -111,7 +111,7 @@
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem;">
                         <div>
                             <label style="display: block; font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.2rem;">Gênero</label>
-                            <input type="text" id="filtro-genero" placeholder="Ex: Comédia" style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary);">
+                            <input type="text" id="filtro-genero" list="generos-list" placeholder="Ex: Comédia" style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary);">
                         </div>
                         <div>
                             <label style="display: block; font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.2rem;">País</label>
@@ -231,7 +231,7 @@
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem;">
                         <div>
                             <label style="display: block; font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.2rem;">Gênero</label>
-                            <input type="text" id="filtro-serie-genero" placeholder="Ex: Comédia, Drama" style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary);">
+                            <input type="text" id="filtro-serie-genero" list="generos-list" placeholder="Ex: Comédia, Drama" style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary);">
                         </div>
                         <div>
                             <label style="display: block; font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.2rem;">País</label>
@@ -335,7 +335,7 @@
                         </div>
                         <div>
                             <label style="display: block; font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.2rem;">Assunto / Gênero</label>
-                            <input type="text" id="filtro-livro-assunto" placeholder="Ex: Fantasy, History" style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary);">
+                            <input type="text" id="filtro-livro-assunto" list="generos-list" placeholder="Ex: Fantasy, History" style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary);">
                         </div>
                         <div>
                             <label style="display: block; font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.2rem;">Autor</label>
@@ -528,20 +528,17 @@
     <option value="Argélia">Argélia</option>
     <option value="Arménia">Arménia</option>
     <option value="Arábia Saudita">Arábia Saudita</option>
-    <option value="Australia">Australia</option>
     <option value="Austrália">Austrália</option>
     <option value="Azerbaijão">Azerbaijão</option>
     <option value="Bangladesh">Bangladesh</option>
     <option value="Bielorrússia">Bielorrússia</option>
     <option value="Bolívia">Bolívia</option>
     <option value="Brasil">Brasil</option>
-    <option value="Brazil">Brazil</option>
     <option value="Bulgária">Bulgária</option>
     <option value="Butão">Butão</option>
     <option value="Bélgica">Bélgica</option>
     <option value="Bósnia e Herzegovina">Bósnia e Herzegovina</option>
     <option value="Camboja">Camboja</option>
-    <option value="Canada">Canada</option>
     <option value="Canadá">Canadá</option>
     <option value="Catar">Catar</option>
     <option value="Cazaquistão">Cazaquistão</option>
@@ -568,25 +565,20 @@
     <option value="Etiópia">Etiópia</option>
     <option value="Filipinas">Filipinas</option>
     <option value="Finlândia">Finlândia</option>
-    <option value="France">France</option>
     <option value="França">França</option>
-    <option value="Germany">Germany</option>
     <option value="Geórgia">Geórgia</option>
     <option value="Grécia">Grécia</option>
     <option value="Guatemala">Guatemala</option>
     <option value="Hong Kong">Hong Kong</option>
     <option value="Hungria">Hungria</option>
-    <option value="India">India</option>
     <option value="Indonésia">Indonésia</option>
     <option value="Iraque">Iraque</option>
     <option value="Irlanda">Irlanda</option>
     <option value="Irão">Irão</option>
     <option value="Islândia">Islândia</option>
     <option value="Israel">Israel</option>
-    <option value="Italy">Italy</option>
     <option value="Itália">Itália</option>
     <option value="Jamaica">Jamaica</option>
-    <option value="Japan">Japan</option>
     <option value="Japão">Japão</option>
     <option value="Jordânia">Jordânia</option>
     <option value="Kosovo">Kosovo</option>
@@ -599,7 +591,6 @@
     <option value="Malta">Malta</option>
     <option value="Malásia">Malásia</option>
     <option value="Marrocos">Marrocos</option>
-    <option value="Mexico">Mexico</option>
     <option value="Mongólia">Mongólia</option>
     <option value="Montenegro">Montenegro</option>
     <option value="México">México</option>
@@ -620,12 +611,9 @@
     <option value="República Democrática do Congo">República Democrática do Congo</option>
     <option value="República Dominicana">República Dominicana</option>
     <option value="Roménia">Roménia</option>
-    <option value="Russia">Russia</option>
     <option value="Rússia">Rússia</option>
     <option value="Senegal">Senegal</option>
     <option value="Singapura">Singapura</option>
-    <option value="South Korea">South Korea</option>
-    <option value="Spain">Spain</option>
     <option value="Sri Lanka">Sri Lanka</option>
     <option value="Suécia">Suécia</option>
     <option value="Suíça">Suíça</option>
@@ -647,6 +635,30 @@
     <option value="Índia">Índia</option>
 </datalist>
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+
+<datalist id="generos-list">
+  <option value="Ação">Ação</option>
+  <option value="Animação">Animação</option>
+  <option value="Aventura">Aventura</option>
+  <option value="Biografia">Biografia</option>
+  <option value="Comédia">Comédia</option>
+  <option value="Crime / Policial">Crime / Policial</option>
+  <option value="Documentário">Documentário</option>
+  <option value="Drama">Drama</option>
+  <option value="Esporte">Esporte</option>
+  <option value="Família">Família</option>
+  <option value="Fantasia">Fantasia</option>
+  <option value="Faroeste">Faroeste</option>
+  <option value="Ficção Científica">Ficção Científica</option>
+  <option value="Guerra">Guerra</option>
+  <option value="História">História</option>
+  <option value="Mistério">Mistério</option>
+  <option value="Música">Música</option>
+  <option value="Musical">Musical</option>
+  <option value="Romance">Romance</option>
+  <option value="Suspense">Suspense</option>
+  <option value="Terror">Terror</option>
+</datalist>
 </body>
 </html>
 <datalist id="autocomplete-filmes"></datalist>

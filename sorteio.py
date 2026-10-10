@@ -60,11 +60,14 @@ def construir_where(filtros):
 
     if "pais" in filtros and filtros["pais"]:
         try:
-            from normalizar_pais import normalizar_pais
+            from normalizar_pais import normalizar_pais, MAPA_NORMALIZACAO
             pais_norm = normalizar_pais(filtros["pais"])
             if pais_norm:
-                clausulas.append("pais_sorteavel = ?")
-                params.append(pais_norm)
+                variantes = [k for k, v in MAPA_NORMALIZACAO.items() if v == pais_norm]
+                variantes.append(pais_norm)
+                placeholders = ', '.join(['?'] * len(variantes))
+                clausulas.append(f"pais_sorteavel IN ({placeholders})")
+                params.extend(variantes)
             else:
                 clausulas.append("pais_sorteavel LIKE ?")
                 params.append(f"%{filtros['pais']}%")
