@@ -1,26 +1,19 @@
-import os
+import sqlite3
 import random
 import requests
+import os
 from dotenv import load_dotenv
+from pathlib import Path
+from geopy.geocoders import Nominatim
 
 load_dotenv()
 TMDB_KEY = os.environ.get("TMDB_API_KEY")
 
-_cache_genres = {}
+DB_PATH = Path("dados/series.db")
 _cache_countries = []
 
-def get_tmdb_genres():
-    if not _cache_genres:
-        try:
-            r = requests.get(f"https://api.themoviedb.org/3/genre/tv/list?api_key={TMDB_KEY}&language=pt-BR", timeout=5)
-            if r.status_code == 200:
-                for g in r.json().get("genres", []):
-                    _cache_genres[g["name"].lower()] = g["id"]
-        except:
-            pass
-    return _cache_genres
-
 def get_tmdb_countries():
+    global _cache_countries
     if not _cache_countries:
         try:
             r = requests.get(f"https://api.themoviedb.org/3/configuration/countries?api_key={TMDB_KEY}&language=pt-BR", timeout=5)
@@ -31,203 +24,128 @@ def get_tmdb_countries():
     return _cache_countries
 
 def realizar_sorteio_serie(opcao="1", filtros=None):
-    if not TMDB_KEY:
-        return {"error": "Chave da API do TMDB não configurada."}
-    
     if filtros is None:
         filtros = {}
         
-    params = {
-        "api_key": TMDB_KEY,
-        "language": "pt-BR",
-        "include_null_first_air_dates": "false"
-    }
-
-    # Tratamento de gênero
-    if filtros.get("genero"):
-        generos_dict = get_tmdb_genres()
-        gen_input = filtros["genero"].lower().strip()
-        gen_id = None
-        for name, gid in generos_dict.items():
-            if gen_input in name:
-                gen_id = gid
-                break
-        if gen_id:
-            params["with_genres"] = str(gen_id)
-
-    # Tratamento de país
-    country_name = "Desconhecido"
-    if filtros.get("pais"):
-        paises_list = get_tmdb_countries()
-        pais_input = filtros["pais"].lower().strip()
-        iso = None
-        for p in paises_list:
-            native = p.get("native_name", "").lower()
-            english = p.get("english_name", "").lower()
-            iso_code = p.get("iso_3166_1", "").lower()
-            if pais_input == native or pais_input == english or pais_input == iso_code:
-                iso = p.get("iso_3166_1")
-                country_name = p.get("native_name")
-                break
-        if iso:
-            params["with_origin_country"] = iso
-            
-    if filtros.get("ano_min"): params["first_air_date.gte"] = f"{filtros['ano_min']}-01-01"
-    if filtros.get("ano_max"): params["first_air_date.lte"] = f"{filtros['ano_max']}-12-31"
-    if filtros.get("nota_min"): params["vote_average.gte"] = float(filtros["nota_min"])
-    
-    tipo_sorteio = "SÉRIE GLOBAL"
-    if str(opcao) == "3":
-        params["sort_by"] = "popularity.desc"
-    elif str(opcao) == "2":
-        params["sort_by"] = "popularity.desc"
-        tipo_sorteio = f"SÉRIE ALEATÓRIA: {country_name.upper()}" if params.get("with_origin_country") else "SÉRIE ALEATÓRIA"
-    else: # 1 (Melhor)
-        params["sort_by"] = "vote_average.desc"
-        params["vote_count.gte"] = 200
-        tipo_sorteio = f"MELHOR SÉRIE: {country_name.upper()}" if params.get("with_origin_country") else "MELHOR SÉRIE"
-        
     try:
-        if filtros.get("titulo"):
-            query_titulo = filtros["titulo"].strip()
-            r = requests.get(f"https://api.themoviedb.org/3/search/tv?api_key={TMDB_KEY}&query={query_titulo}&language=pt-BR", timeout=10)
-            if r.status_code == 200 and r.json().get("results"):
-                serie_escolhida = r.json()["results"][0]
-                tipo_sorteio = "BUSCA POR TÍTULO"
-            else:
-                return {"error": "Nenhuma série encontrada com esse título."}
-        elif filtros.get("diretor"):
-            diretor_nome = filtros["diretor"].strip()
-            r_person = requests.get(f"https://api.themoviedb.org/3/search/person?api_key={TMDB_KEY}&query={diretor_nome}", timeout=10)
-            if r_person.status_code == 200 and r_person.json().get("results"):
-                person_id = r_person.json()["results"][0]["id"]
-                r_cred = requests.get(f"https://api.themoviedb.org/3/person/{person_id}/tv_credits?api_key={TMDB_KEY}", timeout=10)
-                if r_cred.status_code == 200:
-                    crew = r_cred.json().get("crew", [])
-                    shows = {}
-                    for c in crew:
-                        job = c.get("job", "")
-                        if job in ["Director", "Creator", "Executive Producer", "Writer", "Producer", "Showrunner"]:
-                            shows[c["id"]] = c
-                    
-                    resultados = list(shows.values())
-                    
-                    if params.get("with_genres"):
-                        gen = int(params["with_genres"])
-                        resultados = [s for s in resultados if gen in s.get("genre_ids", [])]
-                    if params.get("with_origin_country"):
-                        iso = params["with_origin_country"]
-                        resultados = [s for s in resultados if iso in s.get("origin_country", [])]
-                    if params.get("first_air_date.gte"):
-                        ano_min = params["first_air_date.gte"]
-                        resultados = [s for s in resultados if s.get("first_air_date") and s["first_air_date"] >= ano_min]
-                    if params.get("first_air_date.lte"):
-                        ano_max = params["first_air_date.lte"]
-                        resultados = [s for s in resultados if s.get("first_air_date") and s["first_air_date"] <= ano_max]
-                    if params.get("vote_average.gte"):
-                        nota_min = params["vote_average.gte"]
-                        resultados = [s for s in resultados if s.get("vote_average", 0) >= nota_min]
-                        
-                    if not resultados:
-                        return {"error": f"Nenhuma série encontrada para o diretor/criador '{diretor_nome}' com os filtros aplicados."}
-                    
-                    if str(opcao) == "1":
-                        resultados = sorted(resultados, key=lambda x: x.get("vote_average", 0), reverse=True)
-                        serie_escolhida = resultados[0]
-                    else:
-                        serie_escolhida = random.choice(resultados)
-                else:
-                    return {"error": "Erro ao buscar créditos do diretor."}
-            else:
-                return {"error": f"Diretor/Criador '{diretor_nome}' não encontrado."}
-        else:
-            r = requests.get("https://api.themoviedb.org/3/discover/tv", params=params, timeout=10)
-            if r.status_code != 200:
-                return {"error": "Erro ao consultar TMDb para descobrir séries."}
+        with sqlite3.connect(DB_PATH) as conn:
+            c = conn.cursor()
+            
+            titulo_filtro = filtros.get("titulo", "").strip()
+            imdb_id = filtros.get("imdb_id", "").strip()
+            genero_filtro = filtros.get("genero", "").strip()
+            ano_min = filtros.get("ano_min", "").strip()
+            ano_max = filtros.get("ano_max", "").strip()
+            nota_min = filtros.get("nota_min", "").strip()
+            
+            query_conditions = []
+            params = []
+            
+            if imdb_id:
+                query_conditions.append("s.tconst = ?")
+                params.append(imdb_id)
+            elif titulo_filtro:
+                query_conditions.append("(s.primaryTitle LIKE ? OR s.originalTitle LIKE ?)")
+                params.extend([f"%{titulo_filtro}%", f"%{titulo_filtro}%"])
+            if genero_filtro:
+                query_conditions.append("s.genres LIKE ?")
+                params.append(f"%{genero_filtro}%")
+            if ano_min:
+                try:
+                    query_conditions.append("s.startYear >= ?")
+                    params.append(int(ano_min))
+                except: pass
+            if ano_max:
+                try:
+                    query_conditions.append("s.startYear <= ?")
+                    params.append(int(ano_max))
+                except: pass
+            if nota_min:
+                try:
+                    query_conditions.append("r.averageRating >= ?")
+                    params.append(float(nota_min))
+                except: pass
                 
-            dados = r.json()
-            total_pages = min(dados.get("total_pages", 1), 500)
-            resultados = dados.get("results", [])
+            base_sql = """
+                SELECT s.tconst, s.primaryTitle, s.startYear, s.genres, r.averageRating, r.numVotes 
+                FROM series s
+                LEFT JOIN series_ratings r ON s.tconst = r.tconst
+            """
+            
+            if query_conditions:
+                base_sql += " WHERE " + " AND ".join(query_conditions)
+                
+            base_sql += " ORDER BY RANDOM() LIMIT 100"
+            
+            c.execute(base_sql, tuple(params))
+            resultados = c.fetchall()
             
             if not resultados:
-                return {"error": "Nenhuma série encontrada com esses filtros."}
+                return {"error": "Nenhuma série encontrada com esses filtros no banco de dados."}
                 
-            if str(opcao) in ["2", "3"] and total_pages > 1:
-                page = random.randint(1, total_pages)
-                params["page"] = page
-                r2 = requests.get("https://api.themoviedb.org/3/discover/tv", params=params, timeout=10)
-                if r2.status_code == 200:
-                    resultados = r2.json().get("results", resultados)
-                    
-            serie_escolhida = random.choice(resultados)
-
-        serie_id = serie_escolhida["id"]
-        
-        r_det = requests.get(f"https://api.themoviedb.org/3/tv/{serie_id}?api_key={TMDB_KEY}&language=pt-BR", timeout=10)
-        if r_det.status_code == 200:
-            detalhes = r_det.json()
-        else:
-            detalhes = serie_escolhida
+            # Randomize
+            serie = random.choice(resultados)
+            tconst, title, year, genres, rating, votes = serie
             
-        titulo = detalhes.get("name", "Título Desconhecido")
-        data_lanc = detalhes.get("first_air_date", "")
-        ano = data_lanc[:4] if data_lanc else "Desconhecido"
-        nota = detalhes.get("vote_average", 0.0)
-        votos = detalhes.get("vote_count", 0)
-        
-        pais_iso = detalhes.get("origin_country", [""])[0] if detalhes.get("origin_country") else ""
-        nome_pais = country_name
-        if pais_iso and nome_pais == "Desconhecido":
-            for p in get_tmdb_countries():
-                if p.get("iso_3166_1") == pais_iso:
-                    nome_pais = p.get("native_name", p.get("english_name", pais_iso))
-                    break
-        
-        eps = detalhes.get("number_of_episodes", "Desconhecido")
-        temps = detalhes.get("number_of_seasons", "Desconhecido")
-        duracao = f"{temps} Temp. / {eps} Eps."
-        
-        gens = [g["name"] for g in detalhes.get("genres", [])]
-        generos_str = ", ".join(gens) if gens else "Sem categoria"
-        
-        poster_path = detalhes.get("poster_path")
-        poster_url = f"https://image.tmdb.org/t/p/w500{poster_path}" if poster_path else ""
-        
-        coords = None
-        if nome_pais and nome_pais != "Desconhecido":
-            try:
-                from geopy.geocoders import Nominatim
-                geolocator = Nominatim(user_agent="filmes_global_app")
-                location = geolocator.geocode(nome_pais)
-                if location:
-                    coords = {"lat": location.latitude, "lon": location.longitude}
-            except:
-                pass
-                
-        imdb_id = ""
-        try:
-            r_ext = requests.get(f"https://api.themoviedb.org/3/tv/{serie_id}/external_ids?api_key={TMDB_KEY}", timeout=5)
-            if r_ext.status_code == 200:
-                imdb_id = r_ext.json().get("imdb_id", "")
-        except:
-            pass
+            # Now we fetch details from TMDb API using the IMDb ID (tconst)
+            poster_url = ""
+            nome_pais = "Desconhecido"
+            duracao = "Desconhecido"
+            tmdb_id = ""
+            coords = None
+            
+            if TMDB_KEY:
+                try:
+                    r_find = requests.get(f"https://api.themoviedb.org/3/find/{tconst}?api_key={TMDB_KEY}&external_source=imdb_id&language=pt-BR", timeout=5)
+                    if r_find.status_code == 200:
+                        tv_results = r_find.json().get("tv_results", [])
+                        if tv_results:
+                            tmdb_id = tv_results[0]["id"]
+                            
+                            r_det = requests.get(f"https://api.themoviedb.org/3/tv/{tmdb_id}?api_key={TMDB_KEY}&language=pt-BR", timeout=5)
+                            if r_det.status_code == 200:
+                                det = r_det.json()
+                                poster_path = det.get("poster_path")
+                                if poster_path:
+                                    poster_url = f"https://image.tmdb.org/t/p/w500{poster_path}"
+                                    
+                                eps = det.get("number_of_episodes", "Desconhecido")
+                                temps = det.get("number_of_seasons", "Desconhecido")
+                                duracao = f"{temps} Temp. / {eps} Eps."
+                                
+                                pais_iso = det.get("origin_country", [""])[0] if det.get("origin_country") else ""
+                                if pais_iso:
+                                    for p in get_tmdb_countries():
+                                        if p.get("iso_3166_1") == pais_iso:
+                                            nome_pais = p.get("native_name", p.get("english_name", pais_iso))
+                                            break
+                except:
+                    pass
+                    
+            if nome_pais != "Desconhecido":
+                try:
+                    geolocator = Nominatim(user_agent="filmes_global_app")
+                    location = geolocator.geocode(nome_pais)
+                    if location:
+                        coords = {"lat": location.latitude, "lon": location.longitude}
+                except:
+                    pass
 
-        return {
-            "tipo": tipo_sorteio,
-            "pais": nome_pais,
-            "titulo": titulo,
-            "ano": ano,
-            "nota": round(float(nota), 1),
-            "votos": int(votos),
-            "indice": round(float(nota), 2),
-            "imdb_id": imdb_id,
-            "duracao": duracao,
-            "generos": generos_str,
-            "poster_url": poster_url,
-            "coordenadas": coords,
-            "tmdb_id": serie_id
-        }
+            return {
+                "tipo": "BUSCA DE SÉRIE" if titulo_filtro else "SÉRIE ALEATÓRIA",
+                "pais": nome_pais,
+                "titulo": title,
+                "ano": str(year) if year else "Desconhecido",
+                "nota": round(float(rating), 1) if rating else "N/A",
+                "votos": int(votes) if votes else 0,
+                "indice": round(float(rating), 2) if rating else 0,
+                "imdb_id": tconst,
+                "duracao": duracao,
+                "generos": genres if genres else "Sem categoria",
+                "poster_url": poster_url,
+                "coordenadas": coords,
+                "tmdb_id": tmdb_id
+            }
 
     except Exception as e:
-        return {"error": f"Erro ao buscar série: {str(e)}"}
-
+        return {"error": f"Erro interno ao buscar série: {str(e)}"}

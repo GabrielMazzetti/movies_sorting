@@ -78,7 +78,8 @@ ids_novos = [id_ for id_ in ids if id_ not in ids_cache]
 
 mascara_pendente_cache = cache["countryLabel"].isin(["Desconhecido", None]) | cache["country"].isin(["N/A", None])
 ids_pendentes_cache = list(cache.loc[mascara_pendente_cache, "tconst"].dropna().unique())
-ids_pendentes_cache = [id_ for id_ in ids_pendentes_cache if id_ in set(ids)]
+ids_set = set(ids)
+ids_pendentes_cache = [id_ for id_ in ids_pendentes_cache if id_ in ids_set]
 
 print(f"\nTotal de filmes: {len(ids):,}")
 print(f"Já no cache com país definido: {len(ids) - len(ids_novos) - len(ids_pendentes_cache):,}")
@@ -95,7 +96,7 @@ def consultar_wikidata(ids):
     SELECT ?imdb ?country ?countryLabel WHERE {{
         VALUES ?imdb {{ {valores} }}
         ?film wdt:P345 ?imdb .
-        ?film wdt:P495|wdt:P17 ?country .
+        ?film wdt:P495 ?country .
         SERVICE wikibase:label {{ bd:serviceParam wikibase:language "pt,en" . }}
     }}
     """

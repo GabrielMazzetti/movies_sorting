@@ -11,6 +11,15 @@
     <!-- Leaflet para o Mapa -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<style>
+.custom-dropdown.hidden { display: none; }
+.custom-dropdown li { padding: 0.8rem 1rem; cursor: pointer; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; gap: 0.8rem; }
+.custom-dropdown li:hover { background-color: var(--bg-main); }
+.custom-dropdown li:last-child { border-bottom: none; }
+.custom-dropdown .dropdown-title { font-weight: bold; font-size: 0.95rem; }
+.custom-dropdown .dropdown-year { color: var(--text-secondary); font-size: 0.85rem; }
+</style>
 </head>
 <body class="dark-mode">
     <div class="app-container">
@@ -73,41 +82,32 @@
             <section id="tela-sorteio" class="view-section">
                 <h2><i class="ph ph-dice-five"></i> Realizar Sorteio</h2>
                 
-                <div class="sorteio-options">
-                    <label class="radio-card">
-                        <input type="radio" name="opcao-sorteio" value="1" checked>
-                        <div class="card-content">
-                            <i class="ph ph-trophy"></i>
-                            <div class="text">
-                                <strong>Melhor Filme</strong>
-                                <span>País aleatório</span>
-                            </div>
-                        </div>
-                    </label>
-                    <label class="radio-card">
-                        <input type="radio" name="opcao-sorteio" value="2">
-                        <div class="card-content">
-                            <i class="ph ph-shuffle"></i>
-                            <div class="text">
-                                <strong>Aleatório</strong>
-                                <span>País aleatório</span>
-                            </div>
-                        </div>
-                    </label>
-                    <label class="radio-card">
-                        <input type="radio" name="opcao-sorteio" value="3">
-                        <div class="card-content">
-                            <i class="ph ph-globe-hemisphere-west"></i>
-                            <div class="text">
-                                <strong>Global</strong>
-                                <span>Qualquer filme</span>
-                            </div>
-                        </div>
-                    </label>
+                <div class="quick-actions" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+                    <button class="btn-primary action-btn-small" id="btn-quick-melhor" style="margin: 0; font-size: 0.9rem;">
+                        <i class="ph ph-trophy"></i> Melhor Filme
+                    </button>
+                    <button class="btn-primary action-btn-small" id="btn-quick-aleatorio" style="margin: 0; font-size: 0.9rem; background-color: var(--bg-sidebar); border: 1px solid var(--border-color);">
+                        <i class="ph ph-shuffle"></i> Filme Aleatório
+                    </button>
+                    <button class="btn-primary action-btn-small" id="btn-quick-global" style="margin: 0; font-size: 0.9rem; background-color: var(--bg-sidebar); border: 1px solid var(--border-color);">
+                        <i class="ph ph-globe-hemisphere-west"></i> Filme Global
+                    </button>
                 </div>
 
                 <div class="filtros-container" style="background-color: var(--bg-sidebar); padding: 1rem 1.5rem; border-radius: 12px; margin-bottom: 1.5rem; border: 1px solid var(--border-color);">
-                    <h3 style="margin-bottom: 0.8rem; font-size: 1rem;"><i class="ph ph-funnel"></i> Filtros (Opcional)</h3>
+                    <h3 style="margin-bottom: 0.8rem; font-size: 1rem;"><i class="ph ph-funnel"></i> Filtros Personalizados</h3>
+                    
+                    <div style="margin-bottom: 1rem; display: flex; gap: 1.5rem; background: var(--bg-main); padding: 0.8rem; border-radius: 8px;">
+                        <label style="cursor: pointer; display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem;">
+                            <input type="radio" name="modo-filtro" value="aleatorio" checked>
+                            Sortear Filme Aleatório
+                        </label>
+                        <label style="cursor: pointer; display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem;">
+                            <input type="radio" name="modo-filtro" value="melhor">
+                            Trazer Melhor Filme
+                        </label>
+                    </div>
+
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem;">
                         <div>
                             <label style="display: block; font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.2rem;">Gênero</label>
@@ -137,17 +137,20 @@
                             <input type="number" step="0.1" id="filtro-nota" placeholder="Ex: 7.5" style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary);">
                         </div>
                     </div>
+                    
+                    <button id="btn-sortear-filtros" class="btn-primary action-btn-small" style="margin-top: 1.5rem; width: 100%;">
+                        <i class="ph ph-magic-wand"></i> Sortear com Filtros
+                    </button>
                 </div>
 
-                <!-- Botão Menor e Centralizado -->
-                <button id="btn-sortear" class="btn-primary action-btn-small">
-                    <i class="ph ph-magic-wand"></i> Sortear!
-                </button>
-
                 <div class="busca-container" style="margin-top: 1.5rem; margin-bottom: 1.5rem; background-color: var(--bg-sidebar); padding: 1rem 1.5rem; border-radius: 12px; border: 1px solid var(--border-color);">
-                    <h3 style="margin-bottom: 0.8rem; font-size: 1rem;"><i class="ph ph-magnifying-glass"></i> Busca Direta</h3>
-                    <div style="display: flex; gap: 1rem; align-items: center;">
-                        <input type="text" id="filtro-titulo" placeholder="Digite o título do filme..." style="flex: 1; padding: 0.6rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary);">
+                    <h3 style="margin-bottom: 0.8rem; font-size: 1rem;"><i class="ph ph-magnifying-glass"></i> Busca Direta (Respeita filtros acima)</h3>
+                    <div style="display: flex; gap: 1rem; align-items: center; position: relative;">
+                        <div style="flex: 1; position: relative;">
+                            <input type="text" id="filtro-titulo" autocomplete="off" placeholder="Digite o título (aguarde para sugestões)..." style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary);">
+                            <ul id="custom-autocomplete-filmes" class="custom-dropdown hidden" style="position: absolute; top: 100%; left: 0; right: 0; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; margin-top: 0.5rem; padding: 0; list-style: none; max-height: 250px; overflow-y: auto; z-index: 1000; box-shadow: 0 4px 12px rgba(0,0,0,0.5);"></ul>
+                        </div>
+                        <input type="hidden" id="filtro-imdb-id">
                         <button id="btn-buscar-titulo" class="btn-primary action-btn-small" style="width: auto; padding: 0.6rem 1.5rem; margin-top: 0;">
                             Buscar
                         </button>
@@ -200,41 +203,31 @@
             <section id="tela-series" class="view-section">
                 <h2><i class="ph ph-television"></i> Sorteio de Séries</h2>
                 
-                <div class="sorteio-options">
-                    <label class="radio-card">
-                        <input type="radio" name="opcao-serie" value="1" checked>
-                        <div class="card-content">
-                            <i class="ph ph-trophy"></i>
-                            <div class="text">
-                                <strong>Melhor Série</strong>
-                                <span>País aleatório</span>
-                            </div>
-                        </div>
-                    </label>
-                    <label class="radio-card">
-                        <input type="radio" name="opcao-serie" value="2">
-                        <div class="card-content">
-                            <i class="ph ph-shuffle"></i>
-                            <div class="text">
-                                <strong>Aleatório</strong>
-                                <span>País aleatório</span>
-                            </div>
-                        </div>
-                    </label>
-                    <label class="radio-card">
-                        <input type="radio" name="opcao-serie" value="3">
-                        <div class="card-content">
-                            <i class="ph ph-globe-hemisphere-west"></i>
-                            <div class="text">
-                                <strong>Global</strong>
-                                <span>Qualquer série</span>
-                            </div>
-                        </div>
-                    </label>
+                <div class="quick-actions" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+                    <button class="btn-primary action-btn-small" id="btn-quick-serie-melhor" style="margin: 0; font-size: 0.9rem;">
+                        <i class="ph ph-trophy"></i> Melhor Série
+                    </button>
+                    <button class="btn-primary action-btn-small" id="btn-quick-serie-aleatorio" style="margin: 0; font-size: 0.9rem; background-color: var(--bg-sidebar); border: 1px solid var(--border-color);">
+                        <i class="ph ph-shuffle"></i> Série Aleatória
+                    </button>
+                    <button class="btn-primary action-btn-small" id="btn-quick-serie-global" style="margin: 0; font-size: 0.9rem; background-color: var(--bg-sidebar); border: 1px solid var(--border-color);">
+                        <i class="ph ph-globe-hemisphere-west"></i> Série Global
+                    </button>
                 </div>
 
                 <div class="filtros-container" style="background-color: var(--bg-sidebar); padding: 1rem 1.5rem; border-radius: 12px; margin-bottom: 1.5rem; border: 1px solid var(--border-color);">
-                    <h3 style="margin-bottom: 0.8rem; font-size: 1rem;"><i class="ph ph-funnel"></i> Filtros (Opcional)</h3>
+                    <h3 style="margin-bottom: 0.8rem; font-size: 1rem;"><i class="ph ph-funnel"></i> Filtros Personalizados</h3>
+                    
+                    <div style="margin-bottom: 1rem; display: flex; gap: 1.5rem; background: var(--bg-main); padding: 0.8rem; border-radius: 8px;">
+                        <label style="cursor: pointer; display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem;">
+                            <input type="radio" name="modo-filtro-serie" value="aleatorio" checked>
+                            Sortear Série Aleatória
+                        </label>
+                        <label style="cursor: pointer; display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem;">
+                            <input type="radio" name="modo-filtro-serie" value="melhor">
+                            Trazer Melhor Série
+                        </label>
+                    </div>
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem;">
                         <div>
                             <label style="display: block; font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.2rem;">Gênero</label>
@@ -269,7 +262,11 @@
                 <div class="busca-container" style="margin-top: 1.5rem; margin-bottom: 1.5rem; background-color: var(--bg-sidebar); padding: 1rem 1.5rem; border-radius: 12px; border: 1px solid var(--border-color);">
                     <h3 style="margin-bottom: 0.8rem; font-size: 1rem;"><i class="ph ph-magnifying-glass"></i> Busca Direta</h3>
                     <div style="display: flex; gap: 1rem; align-items: center;">
-                        <input type="text" id="filtro-serie-titulo" placeholder="Digite o título da série..." style="flex: 1; padding: 0.6rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary);">
+                        <div style="flex: 1; position: relative;">
+                            <input type="text" id="filtro-serie-titulo" autocomplete="off" placeholder="Digite o título da série (aguarde para sugestões)..." style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary);">
+                            <ul id="custom-autocomplete-series" class="custom-dropdown hidden" style="position: absolute; top: 100%; left: 0; right: 0; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; margin-top: 0.5rem; padding: 0; list-style: none; max-height: 250px; overflow-y: auto; z-index: 1000; box-shadow: 0 4px 12px rgba(0,0,0,0.5);"></ul>
+                        </div>
+                        <input type="hidden" id="filtro-serie-imdb-id">
                         <button id="btn-buscar-serie-titulo" class="btn-primary action-btn-small" style="width: auto; padding: 0.6rem 1.5rem; margin-top: 0;">
                             Buscar
                         </button>
@@ -320,31 +317,17 @@
             <section id="tela-livros" class="view-section">
                 <h2><i class="ph ph-book-open"></i> Sorteio de Livros</h2>
                 
-                <div class="sorteio-options">
-                    <label class="radio-card">
-                        <input type="radio" name="opcao-livro" value="1" checked>
-                        <div class="card-content">
-                            <i class="ph ph-shuffle"></i>
-                            <div class="text">
-                                <strong>Aleatório</strong>
-                                <span>País aleatório</span>
-                            </div>
-                        </div>
-                    </label>
-                    <label class="radio-card">
-                        <input type="radio" name="opcao-livro" value="2">
-                        <div class="card-content">
-                            <i class="ph ph-globe-hemisphere-west"></i>
-                            <div class="text">
-                                <strong>Global</strong>
-                                <span>Qualquer livro</span>
-                            </div>
-                        </div>
-                    </label>
+                <div class="quick-actions" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+                    <button class="btn-primary action-btn-small" id="btn-quick-livro-aleatorio" style="margin: 0; font-size: 0.9rem; background-color: var(--bg-sidebar); border: 1px solid var(--border-color);">
+                        <i class="ph ph-shuffle"></i> Livro Aleatório
+                    </button>
+                    <button class="btn-primary action-btn-small" id="btn-quick-livro-global" style="margin: 0; font-size: 0.9rem; background-color: var(--bg-sidebar); border: 1px solid var(--border-color);">
+                        <i class="ph ph-globe-hemisphere-west"></i> Livro Global
+                    </button>
                 </div>
 
                 <div class="filtros-container" style="background-color: var(--bg-sidebar); padding: 1rem 1.5rem; border-radius: 12px; margin-bottom: 1.5rem; border: 1px solid var(--border-color);">
-                    <h3 style="margin-bottom: 0.8rem; font-size: 1rem;"><i class="ph ph-funnel"></i> Filtros (Opcional)</h3>
+                    <h3 style="margin-bottom: 0.8rem; font-size: 1rem;"><i class="ph ph-funnel"></i> Filtros Personalizados</h3>
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem;">
                         <div>
                             <label style="display: block; font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.2rem;">País (Local)</label>
@@ -368,7 +351,11 @@
                 <div class="busca-container" style="margin-top: 1.5rem; margin-bottom: 1.5rem; background-color: var(--bg-sidebar); padding: 1rem 1.5rem; border-radius: 12px; border: 1px solid var(--border-color);">
                     <h3 style="margin-bottom: 0.8rem; font-size: 1rem;"><i class="ph ph-magnifying-glass"></i> Busca Direta</h3>
                     <div style="display: flex; gap: 1rem; align-items: center;">
-                        <input type="text" id="filtro-livro-titulo" placeholder="Digite o título do livro..." style="flex: 1; padding: 0.6rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary);">
+                        <div style="flex: 1; position: relative;">
+                            <input type="text" id="filtro-livro-titulo" autocomplete="off" placeholder="Digite o título do livro (aguarde para sugestões)..." style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary);">
+                            <ul id="custom-autocomplete-livros" class="custom-dropdown hidden" style="position: absolute; top: 100%; left: 0; right: 0; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; margin-top: 0.5rem; padding: 0; list-style: none; max-height: 250px; overflow-y: auto; z-index: 1000; box-shadow: 0 4px 12px rgba(0,0,0,0.5);"></ul>
+                        </div>
+                        <input type="hidden" id="filtro-livro-id">
                         <button id="btn-buscar-livro-titulo" class="btn-primary action-btn-small" style="width: auto; padding: 0.6rem 1.5rem; margin-top: 0;">
                             Buscar
                         </button>
@@ -420,39 +407,25 @@
             <section id="tela-musicas" class="view-section">
                 <h2><i class="ph ph-music-notes"></i> Sorteio de Músicas</h2>
                 
-                <div class="sorteio-options">
-                    <label class="radio-card">
-                        <input type="radio" name="opcao-musica" value="1" checked>
-                        <div class="card-content">
-                            <i class="ph ph-music-note"></i>
-                            <div class="text">
-                                <strong>Música Aleatória</strong>
-                                <span>País aleatório</span>
-                            </div>
-                        </div>
-                    </label>
-                    <label class="radio-card">
-                        <input type="radio" name="opcao-musica" value="2">
-                        <div class="card-content">
-                            <i class="ph ph-disc"></i>
-                            <div class="text">
-                                <strong>Álbum Aleatório</strong>
-                                <span>País aleatório</span>
-                            </div>
-                        </div>
-                    </label>
+                <div class="quick-actions" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+                    <button class="btn-primary action-btn-small" id="btn-quick-musica-aleatorio" style="margin: 0; font-size: 0.9rem; background-color: var(--bg-sidebar); border: 1px solid var(--border-color);">
+                        <i class="ph ph-shuffle"></i> Música Aleatória
+                    </button>
+                    <button class="btn-primary action-btn-small" id="btn-quick-musica-global" style="margin: 0; font-size: 0.9rem; background-color: var(--bg-sidebar); border: 1px solid var(--border-color);">
+                        <i class="ph ph-globe-hemisphere-west"></i> Música Global
+                    </button>
                 </div>
 
                 <div class="filtros-container" style="background-color: var(--bg-sidebar); padding: 1rem 1.5rem; border-radius: 12px; margin-bottom: 1.5rem; border: 1px solid var(--border-color);">
-                    <h3 style="margin-bottom: 0.8rem; font-size: 1rem;"><i class="ph ph-funnel"></i> Filtros (Opcional)</h3>
+                    <h3 style="margin-bottom: 0.8rem; font-size: 1rem;"><i class="ph ph-funnel"></i> Filtros Personalizados</h3>
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem;">
                         <div>
-                            <label style="display: block; font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.2rem;">Gênero</label>
-                            <input type="text" id="filtro-musica-genero" placeholder="Ex: Rock, Pop, Grunge" style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary);">
+                            <label style="display: block; font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.2rem;">Energia Mínima (0-1)</label>
+                            <input type="number" step="0.1" id="filtro-musica-energia" placeholder="Ex: 0.8" style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary);">
                         </div>
                         <div>
-                            <label style="display: block; font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.2rem;">País</label>
-                            <input type="text" id="filtro-musica-pais" list="paises-list" placeholder="Ex: BR, US, FR" style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary);">
+                            <label style="display: block; font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.2rem;">Dançabilidade Mínima (0-1)</label>
+                            <input type="number" step="0.1" id="filtro-musica-dancabilidade" placeholder="Ex: 0.7" style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary);">
                         </div>
                         <div>
                             <label style="display: block; font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.2rem;">Artista</label>
@@ -471,6 +444,21 @@
                 <button id="btn-sortear-musica" class="btn-primary action-btn-small">
                     <i class="ph ph-magic-wand"></i> Sortear!
                 </button>
+
+                
+                <div class="busca-container" style="margin-top: 1.5rem; margin-bottom: 1.5rem; background-color: var(--bg-sidebar); padding: 1rem 1.5rem; border-radius: 12px; border: 1px solid var(--border-color);">
+                    <h3 style="margin-bottom: 0.8rem; font-size: 1rem;"><i class="ph ph-magnifying-glass"></i> Busca Direta</h3>
+                    <div style="display: flex; gap: 1rem; align-items: center;">
+                        <div style="flex: 1; position: relative;">
+                            <input type="text" id="filtro-musica-titulo" autocomplete="off" placeholder="Digite o título da música (aguarde para sugestões)..." style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary);">
+                            <ul id="custom-autocomplete-musicas" class="custom-dropdown hidden" style="position: absolute; top: 100%; left: 0; right: 0; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; margin-top: 0.5rem; padding: 0; list-style: none; max-height: 250px; overflow-y: auto; z-index: 1000; box-shadow: 0 4px 12px rgba(0,0,0,0.5);"></ul>
+                        </div>
+                        <input type="hidden" id="filtro-musica-id">
+                        <button id="btn-buscar-musica-titulo" class="btn-primary action-btn-small" style="width: auto; padding: 0.6rem 1.5rem; margin-top: 0;">
+                            Buscar
+                        </button>
+                    </div>
+                </div>
 
                 <div id="loading-spinner-musica" class="hidden" style="margin-top: 1.5rem; text-align: center;">
                     <i class="ph ph-spinner-gap spinner-icon" style="font-size: 2rem;"></i>
@@ -533,39 +521,133 @@
     </div>
 
     <datalist id="paises-list">
-        <option value="US">Estados Unidos</option>
-        <option value="GB">Reino Unido</option>
-        <option value="BR">Brasil</option>
-        <option value="FR">França</option>
-        <option value="KR">Coreia do Sul</option>
-        <option value="JP">Japão</option>
-        <option value="DE">Alemanha</option>
-        <option value="IT">Itália</option>
-        <option value="ES">Espanha</option>
-        <option value="CA">Canadá</option>
-        <option value="IN">Índia</option>
-        <option value="CN">China</option>
-        <option value="RU">Rússia</option>
-        <option value="MX">México</option>
-        <option value="AR">Argentina</option>
-        <option value="AU">Austrália</option>
-        <option value="SE">Suécia</option>
-        <option value="DK">Dinamarca</option>
-        <option value="NO">Noruega</option>
-        <option value="FI">Finlândia</option>
-        <option value="NL">Países Baixos</option>
-        <option value="BE">Bélgica</option>
-        <option value="CH">Suíça</option>
-        <option value="AT">Áustria</option>
-        <option value="PL">Polônia</option>
-        <option value="TR">Turquia</option>
-        <option value="ZA">África do Sul</option>
-        <option value="NZ">Nova Zelândia</option>
-        <option value="IE">Irlanda</option>
-        <option value="PT">Portugal</option>
-        <option value="CO">Colômbia</option>
-        <option value="CL">Chile</option>
-    </datalist>
+    <option value="Afeganistão">Afeganistão</option>
+    <option value="Albânia">Albânia</option>
+    <option value="Alemanha">Alemanha</option>
+    <option value="Argentina">Argentina</option>
+    <option value="Argélia">Argélia</option>
+    <option value="Arménia">Arménia</option>
+    <option value="Arábia Saudita">Arábia Saudita</option>
+    <option value="Australia">Australia</option>
+    <option value="Austrália">Austrália</option>
+    <option value="Azerbaijão">Azerbaijão</option>
+    <option value="Bangladesh">Bangladesh</option>
+    <option value="Bielorrússia">Bielorrússia</option>
+    <option value="Bolívia">Bolívia</option>
+    <option value="Brasil">Brasil</option>
+    <option value="Brazil">Brazil</option>
+    <option value="Bulgária">Bulgária</option>
+    <option value="Butão">Butão</option>
+    <option value="Bélgica">Bélgica</option>
+    <option value="Bósnia e Herzegovina">Bósnia e Herzegovina</option>
+    <option value="Camboja">Camboja</option>
+    <option value="Canada">Canada</option>
+    <option value="Canadá">Canadá</option>
+    <option value="Catar">Catar</option>
+    <option value="Cazaquistão">Cazaquistão</option>
+    <option value="Chile">Chile</option>
+    <option value="China">China</option>
+    <option value="Chipre">Chipre</option>
+    <option value="Chéquia">Chéquia</option>
+    <option value="Colômbia">Colômbia</option>
+    <option value="Coreia do Norte">Coreia do Norte</option>
+    <option value="Coreia do Sul">Coreia do Sul</option>
+    <option value="Costa Rica">Costa Rica</option>
+    <option value="Croácia">Croácia</option>
+    <option value="Cuba">Cuba</option>
+    <option value="Dinamarca">Dinamarca</option>
+    <option value="Egito">Egito</option>
+    <option value="Emirados Árabes Unidos">Emirados Árabes Unidos</option>
+    <option value="Equador">Equador</option>
+    <option value="Eslováquia">Eslováquia</option>
+    <option value="Eslovénia">Eslovénia</option>
+    <option value="Espanha">Espanha</option>
+    <option value="Estado da Palestina">Estado da Palestina</option>
+    <option value="Estados Unidos">Estados Unidos</option>
+    <option value="Estónia">Estónia</option>
+    <option value="Etiópia">Etiópia</option>
+    <option value="Filipinas">Filipinas</option>
+    <option value="Finlândia">Finlândia</option>
+    <option value="France">France</option>
+    <option value="França">França</option>
+    <option value="Germany">Germany</option>
+    <option value="Geórgia">Geórgia</option>
+    <option value="Grécia">Grécia</option>
+    <option value="Guatemala">Guatemala</option>
+    <option value="Hong Kong">Hong Kong</option>
+    <option value="Hungria">Hungria</option>
+    <option value="India">India</option>
+    <option value="Indonésia">Indonésia</option>
+    <option value="Iraque">Iraque</option>
+    <option value="Irlanda">Irlanda</option>
+    <option value="Irão">Irão</option>
+    <option value="Islândia">Islândia</option>
+    <option value="Israel">Israel</option>
+    <option value="Italy">Italy</option>
+    <option value="Itália">Itália</option>
+    <option value="Jamaica">Jamaica</option>
+    <option value="Japan">Japan</option>
+    <option value="Japão">Japão</option>
+    <option value="Jordânia">Jordânia</option>
+    <option value="Kosovo">Kosovo</option>
+    <option value="Letónia">Letónia</option>
+    <option value="Liechtenstein">Liechtenstein</option>
+    <option value="Lituânia">Lituânia</option>
+    <option value="Luxemburgo">Luxemburgo</option>
+    <option value="Líbano">Líbano</option>
+    <option value="Macedónia do Norte">Macedónia do Norte</option>
+    <option value="Malta">Malta</option>
+    <option value="Malásia">Malásia</option>
+    <option value="Marrocos">Marrocos</option>
+    <option value="Mexico">Mexico</option>
+    <option value="Mongólia">Mongólia</option>
+    <option value="Montenegro">Montenegro</option>
+    <option value="México">México</option>
+    <option value="Nepal">Nepal</option>
+    <option value="Nigéria">Nigéria</option>
+    <option value="Noruega">Noruega</option>
+    <option value="Nova Zelândia">Nova Zelândia</option>
+    <option value="Panamá">Panamá</option>
+    <option value="Paquistão">Paquistão</option>
+    <option value="Paraguai">Paraguai</option>
+    <option value="Países Baixos">Países Baixos</option>
+    <option value="Peru">Peru</option>
+    <option value="Polónia">Polónia</option>
+    <option value="Portugal">Portugal</option>
+    <option value="Quirguistão">Quirguistão</option>
+    <option value="Quénia">Quénia</option>
+    <option value="Reino Unido">Reino Unido</option>
+    <option value="República Democrática do Congo">República Democrática do Congo</option>
+    <option value="República Dominicana">República Dominicana</option>
+    <option value="Roménia">Roménia</option>
+    <option value="Russia">Russia</option>
+    <option value="Rússia">Rússia</option>
+    <option value="Senegal">Senegal</option>
+    <option value="Singapura">Singapura</option>
+    <option value="South Korea">South Korea</option>
+    <option value="Spain">Spain</option>
+    <option value="Sri Lanka">Sri Lanka</option>
+    <option value="Suécia">Suécia</option>
+    <option value="Suíça">Suíça</option>
+    <option value="Sérvia">Sérvia</option>
+    <option value="Síria">Síria</option>
+    <option value="Tailândia">Tailândia</option>
+    <option value="Taiwan">Taiwan</option>
+    <option value="Tunísia">Tunísia</option>
+    <option value="Turquia">Turquia</option>
+    <option value="Ucrânia">Ucrânia</option>
+    <option value="Uganda">Uganda</option>
+    <option value="United Kingdom">United Kingdom</option>
+    <option value="United States of America">United States of America</option>
+    <option value="Uruguai">Uruguai</option>
+    <option value="Venezuela">Venezuela</option>
+    <option value="Vietname">Vietname</option>
+    <option value="África do Sul">África do Sul</option>
+    <option value="Áustria">Áustria</option>
+    <option value="Índia">Índia</option>
+</datalist>
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
 </body>
 </html>
+<datalist id="autocomplete-filmes"></datalist>
+<datalist id="autocomplete-series"></datalist>

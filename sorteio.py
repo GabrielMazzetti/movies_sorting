@@ -154,13 +154,59 @@ def realizar_sorteio(opcao="1", filtros=None):
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
 
-        if filtros and filtros.get("titulo"):
-            query = "SELECT * FROM filmes_final WHERE primaryTitle LIKE ? COLLATE NOCASE ORDER BY numVotes DESC LIMIT 1"
-            cursor.execute(query, [f"%{filtros['titulo']}%"])
-            escolhido = cursor.fetchone()
-            
-            if not escolhido:
-                return {"error": "Nenhum filme encontrado com esse título e filtros."}
+        if filtros and (filtros.get("titulo") or filtros.get("imdb_id")):
+            if filtros.get("imdb_id"):
+                query = f"SELECT * FROM filmes_final WHERE tconst = ? {where_sql} LIMIT 1"
+                cursor.execute(query, [filtros['imdb_id']] + params)
+                escolhido = cursor.fetchone()
+                
+                if not escolhido:
+                    # Tenta na global se não achar na final com os filtros (nota: tabela global não tem todos os filtros, então aplicamos apenas o ID)
+                    query_global = """
+                        SELECT f.*, r.averageRating, r.numVotes 
+                        FROM filmes f 
+                        LEFT JOIN ratings r ON f.tconst = r.tconst 
+                        WHERE f.tconst = ? 
+                        LIMIT 1
+                    """
+                    cursor.execute(query_global, [filtros['imdb_id']])
+                    geral = cursor.fetchone()
+            else:
+                import re
+                filtros["titulo"] = re.sub(r" \(\d{4}\)$", "", filtros["titulo"].strip())
+                # Adiciona o where_sql para respeitar os filtros preenchidos na busca por título
+                query = f"SELECT * FROM filmes_final WHERE (primaryTitle LIKE ? OR originalTitle LIKE ?) COLLATE NOCASE {where_sql} ORDER BY numVotes DESC LIMIT 1"
+                cursor.execute(query, [f"%{filtros['titulo']}%", f"%{filtros['titulo']}%"] + params)
+                escolhido = cursor.fetchone()
+                
+                if not escolhido:
+                    # Busca na tabela global de filmes (ignora filtros complexos pois a tabela raw não tem a maioria das colunas tratadas)
+                    query_global = """
+                        SELECT f.*, r.averageRating, r.numVotes 
+                        FROM filmes f 
+                        LEFT JOIN ratings r ON f.tconst = r.tconst 
+                        WHERE (f.primaryTitle = ? OR f.originalTitle = ?) COLLATE NOCASE 
+                        ORDER BY r.numVotes DESC LIMIT 1
+                    """
+                    cursor.execute(query_global, [filtros['titulo'], filtros['titulo']])
+                    geral = cursor.fetchone()
+                
+                    if not geral:
+                        return {"error": "Nenhum filme encontrado com esse título."}
+                    
+                    escolhido = {
+                        "tconst": geral["tconst"],
+                        "primaryTitle": geral["primaryTitle"],
+                        "startYear": geral["startYear"],
+                        "runtimeMinutes": geral["runtimeMinutes"],
+                        "genres": geral["genres"],
+                        "averageRating": geral["averageRating"] or 0.0,
+                        "numVotes": geral["numVotes"] or 0,
+                        "indice": 0.0,
+                        "pais_sorteavel": "Desconhecido"
+                    }
+                    pais = "Desconhecido"
+                    tipo_sorteio = "BUSCA POR TÍTULO"
                 
             pais = escolhido["pais_sorteavel"]
             tipo_sorteio = "BUSCA POR TÍTULO"
