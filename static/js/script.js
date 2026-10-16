@@ -239,7 +239,8 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('res-titulo').textContent = dados.titulo;
             document.getElementById('res-ano').textContent = dados.ano;
             document.getElementById('res-duracao').textContent = dados.duracao + " min";
-            document.getElementById('res-nota').textContent = dados.nota;
+            const notaFormatada = !isNaN(parseFloat(dados.nota)) ? parseFloat(dados.nota).toFixed(1) : dados.nota;
+            document.getElementById('res-nota').textContent = notaFormatada;
             document.getElementById('res-votos').textContent = parseInt(dados.votos).toLocaleString('pt-BR');
             document.getElementById('res-indice').textContent = (parseFloat(dados.indice) || 0).toFixed(2);
             document.getElementById('res-pais').textContent = dados.pais;
@@ -262,7 +263,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 pais: dados.pais,
                 titulo: dados.titulo,
                 ano: dados.ano,
-                nota: dados.nota,
+                nota: notaFormatada,
                 indice: dados.indice,
                 imdb_id: dados.imdb_id,
                 poster_url: dados.poster_url
@@ -735,7 +736,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <h3>${item.titulo}</h3>
                         <div class="details">${item.ano || ''}</div>
                         <div class="stats">
-                            <span title="Nota"><i class="ph ph-star-fill" style="color:#f1c40f;"></i> ${item.nota || '?'}</span>
+                            <span title="Nota"><i class="ph ph-star-fill" style="color:#f1c40f;"></i> ${(!isNaN(parseFloat(item.nota)) ? parseFloat(item.nota).toFixed(1) : (item.nota || '?'))}</span>
                             ${(item.is_book || item.is_music) ? '' : `<span title="Nota KM" style="color: var(--primary-color); font-weight: bold; margin-left: auto;">KM: ${(parseFloat(item.indice) || 0).toFixed(2)}</span>`}
                         </div>
                         <div style="font-size: 0.75rem; margin-top: 0.2rem; color: #eee;">
@@ -759,6 +760,7 @@ function setupCustomAutocomplete(inputId, dropdownId, hiddenId, tipo) {
     if(!input || !dropdown) return;
 
     let debounceTimer;
+    let currentReqId = 0;
     
     input.addEventListener('input', (e) => {
         clearTimeout(debounceTimer);
@@ -770,11 +772,12 @@ function setupCustomAutocomplete(inputId, dropdownId, hiddenId, tipo) {
             return;
         }
         
-        // Atraso removido
+        const reqId = ++currentReqId;
         debounceTimer = setTimeout(async () => {
             try {
                 const res = await fetch('/api/autocomplete?q=' + encodeURIComponent(query) + '&tipo=' + tipo);
                 const data = await res.json();
+                if (reqId !== currentReqId) return; // Ignora respostas antigas fora de ordem
                 
                 dropdown.innerHTML = '';
                 if(data.length === 0) {
@@ -794,7 +797,7 @@ function setupCustomAutocomplete(inputId, dropdownId, hiddenId, tipo) {
                 });
                 dropdown.classList.remove('hidden');
             } catch(e) { console.error(e); }
-        }, 0); 
+        }, 150); 
     });
 
     // Esconde o dropdown ao clicar fora

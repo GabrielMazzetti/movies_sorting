@@ -62,72 +62,162 @@ def autocomplete():
     
     try:
         resp = []
+        seen_ids = set()
         if tipo == 'movie' or tipo == 'serie':
+            from dotenv import load_dotenv
+            import requests
+            load_dotenv()
+            tmdb_key = os.environ.get("TMDB_API_KEY")
+
             if tipo == 'serie':
                 db_path = "dados/series.db"
-                with sqlite3.connect(db_path) as conn:
-                    c = conn.cursor()
-                    sql = "SELECT tconst, primaryTitle, originalTitle, startYear FROM series WHERE (primaryTitle LIKE ? OR originalTitle LIKE ?) COLLATE NOCASE LIMIT 10"
-                    c.execute(sql, (query + "%", query + "%"))
-                    resultados = c.fetchall()
-                    if len(resultados) < 10:
-                        sql2 = "SELECT tconst, primaryTitle, originalTitle, startYear FROM series WHERE (primaryTitle LIKE ? OR originalTitle LIKE ?) COLLATE NOCASE LIMIT ?"
-                        c.execute(sql2, ("%" + query + "%", "%" + query + "%", 10 - len(resultados)))
-                        for row in c.fetchall():
-                            if row not in resultados:
-                                resultados.append(row)
-                    for r in resultados:
-                        display_title = r[2] if r[2] and query.lower() in str(r[2]).lower() else r[1]
-                        resp.append({"id": r[0], "title": display_title, "year": r[3]})
+                if os.path.exists(db_path):
+                    with sqlite3.connect(db_path) as conn:
+                        c = conn.cursor()
+                        sql = """
+                            SELECT tconst, primaryTitle, originalTitle, startYear, MAX(v) as votes FROM (
+                                SELECT s.tconst, s.primaryTitle, s.originalTitle, s.startYear, COALESCE(r.numVotes, 0) as v
+                                FROM (SELECT tconst, primaryTitle, originalTitle, startYear FROM series WHERE primaryTitle LIKE ? COLLATE NOCASE LIMIT 150) s
+                                LEFT JOIN series_ratings r ON s.tconst = r.tconst
+                                UNION ALL
+                                SELECT s.tconst, s.primaryTitle, s.originalTitle, s.startYear, COALESCE(r.numVotes, 0) as v
+                                FROM (SELECT tconst, primaryTitle, originalTitle, startYear FROM series WHERE originalTitle LIKE ? COLLATE NOCASE LIMIT 150) s
+                                LEFT JOIN series_ratings r ON s.tconst = r.tconst
+                            ) GROUP BY tconst ORDER BY votes DESC LIMIT 10
+                        """
+                        c.execute(sql, (query + "%", query + "%"))
+                        resultados = c.fetchall()
+                        for r in resultados:
+                            display_title = r[2] if r[2] and query.lower() in str(r[2]).lower() and query.lower() not in str(r[1]).lower() else r[1]
+                            resp.append({"id": r[0], "title": display_title, "year": r[3], "votes": r[4] or 0})
+                            seen_ids.add(r[0])
+
+                if tmdb_key and len(query) >= 2:
+                    try:
+                        r_tmdb = requests.get(
+                            "https://api.themoviedb.org/3/search/tv",
+                            params={"api_key": tmdb_key, "query": query, "language": "pt-BR"},
+                            timeout=2
+                        )
+                        if r_tmdb.status_code == 200:
+                            for item in r_tmdb.json().get("results", [])[:5]:
+                                pt_title = item.get("name") or ""
+                                orig_title = item.get("original_name") or ""
+                                year = (item.get("first_air_date") or "")[:4] or "N/A"
+                                title_disp = f"{pt_title} ({orig_title})" if orig_title and orig_title.lower() != pt_title.lower() else pt_title
+                                if not any(orig_title.lower() == x["title"].lower() or pt_title.lower() == x["title"].lower() for x in resp):
+                                    resp.append({
+                                        "id": f"tmdb_{item['id']}",
+                                        "title": title_disp,
+                                        "year": year,
+                                        "votes": int(item.get("vote_count", 0) * 10)
+                                    })
+                    except Exception:
+                        pass
+
+                resp.sort(key=lambda x: x.get("votes", 0), reverse=True)
+                resp = resp[:12]
+
             else:
                 db_path = "dados/filmes_global.db"
+                if os.path.exists(db_path):
+                    with sqlite3.connect(db_path) as conn:
+                        c = conn.cursor()
+                        sql = """
+                            SELECT tconst, primaryTitle, originalTitle, startYear, MAX(v) as votes FROM (
+                                SELECT tconst, primaryTitle, originalTitle, startYear, numVotes as v
+                                FROM filmes_final
+                                WHERE (primaryTitle LIKE ? OR originalTitle LIKE ?) COLLATE NOCASE
+                                UNION ALL
+                                SELECT f.tconst, f.primaryTitle, f.originalTitle, f.startYear, COALESCE(r.numVotes, 0) as v
+                                FROM (SELECT tconst, primaryTitle, originalTitle, startYear FROM filmes WHERE primaryTitle LIKE ? COLLATE NOCASE LIMIT 150) f
+                                LEFT JOIN ratings r ON f.tconst = r.tconst
+                                UNION ALL
+                                SELECT f.tconst, f.primaryTitle, f.originalTitle, f.startYear, COALESCE(r.numVotes, 0) as v
+                                FROM (SELECT tconst, primaryTitle, originalTitle, startYear FROM filmes WHERE originalTitle LIKE ? COLLATE NOCASE LIMIT 150) f
+                                LEFT JOIN ratings r ON f.tconst = r.tconst
+                            ) GROUP BY tconst ORDER BY votes DESC LIMIT 10
+                        """
+                        c.execute(sql, ("%" + query + "%", "%" + query + "%", query + "%", query + "%"))
+                        resultados = c.fetchall()
+                        if len(resultados) < 5 and len(query) >= 3:
+                            sql_sub = """
+                                SELECT f.tconst, f.primaryTitle, f.originalTitle, f.startYear, COALESCE(r.numVotes, 0) as v
+                                FROM filmes f
+                                LEFT JOIN ratings r ON f.tconst = r.tconst
+                                WHERE (f.primaryTitle LIKE ? OR f.originalTitle LIKE ?) COLLATE NOCASE
+                                ORDER BY v DESC LIMIT 10
+                            """
+                            c.execute(sql_sub, ("%" + query + "%", "%" + query + "%"))
+                            for row in c.fetchall():
+                                if row[0] not in {r[0] for r in resultados}:
+                                    resultados.append(row)
+
+                        for r in resultados:
+                            display_title = r[2] if r[2] and query.lower() in str(r[2]).lower() and query.lower() not in str(r[1]).lower() else r[1]
+                            resp.append({"id": r[0], "title": display_title, "year": r[3], "votes": r[4] or 0})
+                            seen_ids.add(r[0])
+
+                if tmdb_key and len(query) >= 2:
+                    try:
+                        r_tmdb = requests.get(
+                            "https://api.themoviedb.org/3/search/movie",
+                            params={"api_key": tmdb_key, "query": query, "language": "pt-BR"},
+                            timeout=2
+                        )
+                        if r_tmdb.status_code == 200:
+                            for item in r_tmdb.json().get("results", [])[:5]:
+                                pt_title = item.get("title") or ""
+                                orig_title = item.get("original_title") or ""
+                                year = (item.get("release_date") or "")[:4] or "N/A"
+                                title_disp = f"{pt_title} ({orig_title})" if orig_title and orig_title.lower() != pt_title.lower() else pt_title
+                                if not any(orig_title.lower() == x["title"].lower() or pt_title.lower() == x["title"].lower() for x in resp):
+                                    resp.append({
+                                        "id": f"tmdb_{item['id']}",
+                                        "title": title_disp,
+                                        "year": year,
+                                        "votes": int(item.get("vote_count", 0) * 10)
+                                    })
+                    except Exception:
+                        pass
+
+                resp.sort(key=lambda x: x.get("votes", 0), reverse=True)
+                resp = resp[:12]
+
+        elif tipo == 'livro':
+            db_path = "dados/livros.db"
+            if os.path.exists(db_path):
                 with sqlite3.connect(db_path) as conn:
                     c = conn.cursor()
-                    sql = "SELECT tconst, primaryTitle, originalTitle, startYear FROM filmes WHERE titleType = 'movie' AND (primaryTitle LIKE ? OR originalTitle LIKE ?) COLLATE NOCASE LIMIT 10"
-                    c.execute(sql, (query + "%", query + "%"))
+                    sql = "SELECT key, title FROM livros WHERE title LIKE ? COLLATE NOCASE LIMIT 10"
+                    c.execute(sql, (query + "%",))
                     resultados = c.fetchall()
                     if len(resultados) < 10:
-                        sql2 = "SELECT tconst, primaryTitle, originalTitle, startYear FROM filmes WHERE titleType = 'movie' AND (primaryTitle LIKE ? OR originalTitle LIKE ?) COLLATE NOCASE LIMIT ?"
-                        c.execute(sql2, ("%" + query + "%", "%" + query + "%", 10 - len(resultados)))
+                        sql2 = "SELECT key, title FROM livros WHERE title LIKE ? COLLATE NOCASE LIMIT ?"
+                        c.execute(sql2, ("%" + query + "%", 10 - len(resultados)))
                         for row in c.fetchall():
                             if row not in resultados:
                                 resultados.append(row)
                     for r in resultados:
-                        display_title = r[2] if r[2] and query.lower() in str(r[2]).lower() else r[1]
-                        resp.append({"id": r[0], "title": display_title, "year": r[3]})
-        
-        elif tipo == 'livro':
-            db_path = "dados/livros.db"
-            with sqlite3.connect(db_path) as conn:
-                c = conn.cursor()
-                sql = "SELECT key, title FROM livros WHERE title LIKE ? COLLATE NOCASE LIMIT 10"
-                c.execute(sql, (query + "%",))
-                resultados = c.fetchall()
-                if len(resultados) < 10:
-                    sql2 = "SELECT key, title FROM livros WHERE title LIKE ? COLLATE NOCASE LIMIT ?"
-                    c.execute(sql2, ("%" + query + "%", 10 - len(resultados)))
-                    for row in c.fetchall():
-                        if row not in resultados:
-                            resultados.append(row)
-                for r in resultados:
-                    resp.append({"id": r[0], "title": r[1], "year": "LIVRO"})
+                        resp.append({"id": r[0], "title": r[1], "year": "LIVRO"})
                     
         elif tipo == 'musica':
             db_path = "dados/musicas.db"
-            with sqlite3.connect(db_path) as conn:
-                c = conn.cursor()
-                sql = "SELECT id, name, artists, year FROM musicas WHERE name LIKE ? COLLATE NOCASE LIMIT 10"
-                c.execute(sql, (query + "%",))
-                resultados = c.fetchall()
-                if len(resultados) < 10:
-                    sql2 = "SELECT id, name, artists, year FROM musicas WHERE name LIKE ? COLLATE NOCASE LIMIT ?"
-                    c.execute(sql2, ("%" + query + "%", 10 - len(resultados)))
-                    for row in c.fetchall():
-                        if row not in resultados:
-                            resultados.append(row)
-                for r in resultados:
-                    title = f"{r[1]} ({r[2]})"
-                    resp.append({"id": r[0], "title": title, "year": r[3]})
+            if os.path.exists(db_path):
+                with sqlite3.connect(db_path) as conn:
+                    c = conn.cursor()
+                    sql = "SELECT id, name, artists, year FROM musicas WHERE name LIKE ? COLLATE NOCASE LIMIT 10"
+                    c.execute(sql, (query + "%",))
+                    resultados = c.fetchall()
+                    if len(resultados) < 10:
+                        sql2 = "SELECT id, name, artists, year FROM musicas WHERE name LIKE ? COLLATE NOCASE LIMIT ?"
+                        c.execute(sql2, ("%" + query + "%", 10 - len(resultados)))
+                        for row in c.fetchall():
+                            if row not in resultados:
+                                resultados.append(row)
+                    for r in resultados:
+                        title = f"{r[1]} ({r[2]})"
+                        resp.append({"id": r[0], "title": title, "year": r[3]})
                     
         return jsonify(resp)
     except Exception as e:
